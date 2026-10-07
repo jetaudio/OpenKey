@@ -18,6 +18,8 @@ static Int8 _cacheData = 0; //use cache for faster
 
 void initSmartSwitchKey(const Byte* pData, const int& size) {
     _smartSwitchKeyData.clear();
+    _cacheKey.clear();
+    _cacheData = 0;
     if (pData == NULL) return;
     Uint16 count = 0;
     Uint32 cursor = 0;
@@ -28,12 +30,29 @@ void initSmartSwitchKey(const Byte* pData, const int& size) {
     Uint8 bundleIdSize;
     Uint8 value;
     for (int i = 0; i < count; i++) {
+        if (cursor >= (Uint32)size) break;
         bundleIdSize = pData[cursor++];
+        if (cursor + bundleIdSize >= (Uint32)size) break;
         string bundleId((char*)pData + cursor, bundleIdSize);
         cursor += bundleIdSize;
         value = pData[cursor++];
         _smartSwitchKeyData[bundleId] = value;
     }
+}
+
+static bool isDefaultEnglishApp(const string& bundleId) {
+#if !defined(_WIN32) && !defined(LINUX)
+    static const vector<string> apps = {
+        "com.apple.Terminal", "com.googlecode.iterm2", "com.microsoft.VSCode",
+        "com.microsoft.VSCodeInsiders", "com.sublimetext.3", "com.sublimetext.4",
+        "com.apple.dt.Xcode", "dev.zed.Zed", "com.mitchellh.ghostty",
+        "io.alacritty", "org.alacritty", "com.github.wez.wezterm", "net.kovidgoyal.kitty"
+    };
+    for (const string& app : apps) if (app == bundleId) return true;
+    return bundleId.rfind("com.jetbrains.", 0) == 0;
+#else
+    return false;
+#endif
 }
 
 void getSmartSwitchKeySaveData(vector<Byte>& outData) {
@@ -52,6 +71,7 @@ void getSmartSwitchKeySaveData(vector<Byte>& outData) {
 }
 
 int getAppInputMethodStatus(const string& bundleId, const int& currentInputMethod) {
+    if (bundleId.empty()) return -1;
     if (_cacheKey.compare(bundleId) == 0) {
         return _cacheData;
     }
@@ -61,12 +81,14 @@ int getAppInputMethodStatus(const string& bundleId, const int& currentInputMetho
         return _cacheData;
     }
     _cacheKey = bundleId;
-    _cacheData = currentInputMethod;
+    // Bit 0 is language; higher bits contain the remembered code table.
+    _cacheData = isDefaultEnglishApp(bundleId) ? currentInputMethod & ~1 : currentInputMethod;
     _smartSwitchKeyData[bundleId] = _cacheData;
-    return -1;
+    return isDefaultEnglishApp(bundleId) ? _cacheData : -1;
 }
 
 void setAppInputMethodStatus(const string& bundleId, const int& language) {
+    if (bundleId.empty()) return;
     _smartSwitchKeyData[bundleId] = language;
     _cacheKey = bundleId;
     _cacheData = language;
