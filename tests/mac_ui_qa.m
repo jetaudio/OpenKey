@@ -39,7 +39,10 @@ int main(int argc, const char *argv[]) { @autoreleasepool {
         if ([view isKindOfClass:[NSTextField class]] && [((NSTextField *)view).stringValue isEqualToString:@"Kiểu gõ:"]) inputTypeLabel=(NSTextField *)view;
     }
     if (controlsBox==nil || inputTypeLabel==nil) fail(@"missing control group or input type label");
-    NSRect titleFrame=[controller.view convertRect:controlsBox.titleRect fromView:controlsBox];
+    // NSBox's custom style may report an empty titleRect even while drawing its
+    // title. Reserve a full header row so text cannot collide with that title.
+    NSRect titleFrame=NSMakeRect(NSMinX(controlsBox.frame), NSMaxY(controlsBox.frame)-24,
+                                 NSWidth(controlsBox.frame), 24);
     if (NSIntersectsRect(titleFrame, inputTypeLabel.frame)) fail(@"control group title overlaps input type label");
 
     NSString *domain=[NSProcessInfo processInfo].processName;

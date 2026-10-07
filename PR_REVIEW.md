@@ -32,8 +32,16 @@ Ngày kiểm tra: 07/10/2026. Repo: `tuyenvm/OpenKey`; master được kiểm tr
 
 - Cục bộ Apple Silicon: 3.376 assertions engine; 87 assertions macOS event; 12 assertions lifecycle tap, với AddressSanitizer và UndefinedBehaviorSanitizer. Event posting, truy vấn window/focus, input source và event tap được mock để không gửi phím hoặc cài hook vào máy người dùng.
 - Các bài kiểm tra gồm case/bỏ dấu, 25 cặp bảng mã cho ký tự Việt, chuỗi trộn ASCII/emoji, dữ liệu preference lỗi, bit bảng mã, override/cache Smart Switch; timeout/user-input; Fn đơn, Fn+arrow, nhả Fn+Control; Spotlight fade/ẩn/focus lỗi; cấp phát Backspace; chuỗi dài Unicode/VNI/tổ hợp, macro có surrogate pair; control key lúc restore; ownership input source; khởi tạo/thất bại/dừng/watchdog.
-- [CI macOS](https://github.com/jetaudio/OpenKey/actions/runs/37567489494): thành công, Xcode 26.6 (17F113), cả 3 bộ kiểm thử và Release universal.
-- [CI Windows](https://github.com/jetaudio/OpenKey/actions/runs/37567489521): thành công, 3.376 assertions với MSVC/Windows keycode; build app/updater x86/x64, kiểm tra PE machine, upload artifact và provenance attestation.
-- Bản DMG `bc7f7c5` đã được tải về: SHA-256 khớp, `hdiutil verify` hợp lệ; mount chỉ đọc kiểm tra plist, chữ ký ad hoc và binary chứa arm64/x86_64. Storyboard và outlet Fn tải được; kiểm tra thao tác Fn và render phát hiện title “Điều khiển” chồng lên label “Kiểu gõ”. Đã hạ các hàng điều khiển 14 px và thêm kiểm tra giao nhau của title/label; sẽ build lại và kiểm tra bản cuối.
+- [CI macOS cuối](https://github.com/jetaudio/OpenKey/actions/runs/37567989734): thành công, commit `22690773b47dcad7f4bb851611119ebbc19d7e23`, Xcode 26.6 (17F113), cả 3 bộ kiểm thử và Release universal.
+- [CI Windows cuối](https://github.com/jetaudio/OpenKey/actions/runs/37567989731): thành công trên cùng commit; 3.376 assertions với MSVC/Windows keycode; build app/updater x86/x64, kiểm tra PE machine, upload artifact và provenance attestation.
+- Bản DMG `bc7f7c5` đã được tải về: storyboard và outlet Fn tải được; kiểm tra thao tác Fn và render phát hiện title “Điều khiển” chồng lên label “Kiểu gõ”. Đã hạ các hàng điều khiển 14 px và thêm kiểm tra vùng header/label. UI QA kiểm tra bản cũ báo lỗi overlap; bản cuối vượt qua kiểm tra. Đã render lại và xem ảnh xác nhận các hàng không chồng chữ.
+- Bản cuối: `OpenKey-2.0.4-22690773b47d-universal.dmg`, khoảng 798 KiB. SHA-256 khớp artifact; `hdiutil verify` hợp lệ; mount chỉ đọc kiểm tra plist, chữ ký ad hoc và `lipo -archs` xác nhận `x86_64 arm64`. Bản này dùng phiên bản `2.0.4` / build `48` từ project của upstream master; commit trong tên file xác định phần thay đổi của fork. Các cập nhật báo cáo và công cụ QA sau commit này không thay đổi mã ứng dụng hoặc storyboard.
+
+```text
+f0364aeeeb29f17c761442f1c16418ed97889fa2d5a918bdb6061fedb000feca  OpenKey-2.0.4-22690773b47d-universal.dmg
+```
+
+Mã nguồn cục bộ: `/Users/hoangmanhlinh/Desktop/OpenKeys/OpenKey`.
+DMG và ảnh render cục bộ: `/Users/hoangmanhlinh/Desktop/OpenKeys/builds/final/`.
 
 Chưa xác nhận bằng sử dụng tương tác dài hạn: gõ thực tế trong Apple Mail/WebKit/Spotlight, sleep/wake, Login Items và Windows lock/unlock. Kiểm thử mock, build, kiến trúc, chữ ký và integrity DMG không chứng minh các tình huống này đã chạy ổn định. Bản fork được ký ad hoc và chưa notarize.
