@@ -141,10 +141,11 @@ string& OpenKeyHelper::getFrontMostAppExecuteName() {
 		wcscmp(_exeName, _T("explorer.exe")) == 0) {
 		return _exeNameUtf8;
 	}
-	int size_needed = WideCharToMultiByte(CP_UTF8, 0, _exeName, (int)lstrlen(_exeName), NULL, 0, NULL, NULL);
-	std::string strTo(size_needed, 0);
-	WideCharToMultiByte(CP_UTF8, 0, _exeName, (int)lstrlen(_exeName), &strTo[0], size_needed, NULL, NULL);
-	_exeNameUtf8 = strTo;
+	//convert straight into the cached name, no temporary string
+	int nameLength = (int)lstrlen(_exeName);
+	int size_needed = WideCharToMultiByte(CP_UTF8, 0, _exeName, nameLength, NULL, 0, NULL, NULL);
+	_exeNameUtf8.assign(size_needed, '\0');
+	WideCharToMultiByte(CP_UTF8, 0, _exeName, nameLength, &_exeNameUtf8[0], size_needed, NULL, NULL);
 	//LOG(L"%s\n", utf8ToWideString(_exeNameUtf8).c_str());
 	return _exeNameUtf8;
 }
@@ -297,12 +298,6 @@ wstring OpenKeyHelper::getVersionString() {
 	DWORD ver = getVersionNumber();
 	wsprintfW(versionBuffer, _T("%d.%d.%d"), ver & 0xFF, (ver>>8) & 0xFF, (ver >> 16) & 0xFF);
 	return wstring(versionBuffer);
-
-	// get the filename of the executable containing the version resource
-	TCHAR szFilename[MAX_PATH + 1] = { 0 };
-	if (GetModuleFileName(NULL, szFilename, MAX_PATH) == 0) { 
-		return _T("");
-	}
 }
 
 wstring OpenKeyHelper::getContentOfUrl(LPCTSTR url){
