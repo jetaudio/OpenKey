@@ -20,7 +20,7 @@ static vector<Uint8> _charKeyCode = {
 
 static vector<Uint8> _breakCode = {
     KEY_ESC, KEY_TAB, KEY_ENTER, KEY_RETURN, KEY_LEFT, KEY_RIGHT, KEY_DOWN, KEY_UP, KEY_COMMA, KEY_DOT,
-    KEY_SLASH, KEY_SEMICOLON, KEY_QUOTE, KEY_BACK_SLASH, KEY_MINUS, KEY_EQUALS, KEY_BACKQUOTE, KEY_TAB
+    KEY_SLASH, KEY_SEMICOLON, KEY_QUOTE, KEY_BACK_SLASH, KEY_MINUS, KEY_EQUALS, KEY_BACKQUOTE
 #if _WIN32
 	, VK_INSERT, VK_HOME, VK_END, VK_DELETE, VK_PRIOR, VK_NEXT, VK_SNAPSHOT, VK_PRINT, VK_SELECT, VK_HELP,
 	VK_EXECUTE, VK_NUMLOCK, VK_SCROLL
@@ -145,21 +145,11 @@ void* vKeyInit() {
 bool isWordBreak(const vKeyEvent& event, const vKeyEventState& state, const Uint16& data) {
     if (event == vKeyEvent::Mouse)
         return true;
-    for (i = 0; i < _breakCode.size(); i++) {
-        if (_breakCode[i] == data) {
-            return true;
-        }
-    }
-    return false;
+    return std::find(_breakCode.begin(), _breakCode.end(), data) != _breakCode.end();
 }
 
 bool isMacroBreakCode(const int& data) {
-    for (i = 0; i < _macroBreakCode.size(); i++) {
-        if (_macroBreakCode[i] == data) {
-            return true;
-        }
-    }
-    return false;
+    return std::find(_macroBreakCode.begin(), _macroBreakCode.end(), data) != _macroBreakCode.end();
 }
 
 void setKeyData(const Byte& index, const Uint16& keyCode, const bool& isCaps) {
@@ -378,63 +368,45 @@ void insertState(const Uint16& keyCode, const bool& isCaps) {
     }
 }
 
+//save data as MAX_BUFF-sized states (always at least one state, possibly empty)
+static void saveChunkedStates(const vector<Uint32>& data) {
+    size_t start = 0;
+    do {
+        size_t end = data.size() - start > MAX_BUFF ? start + MAX_BUFF : data.size();
+        _typingStates.emplace_back(data.begin() + start, data.begin() + end);
+        start = end;
+    } while (start < data.size());
+}
+
 void saveWord() {
     //save word history
     if (hCode != vReplaceMaro) {
         if (_index > 0) {
             if (_longWordHelper.size() > 0) { //save long word first
-                _typingStatesData.clear();
-                for (i = 0; i < _longWordHelper.size(); i++) {
-                    if (i != 0 && i % MAX_BUFF == 0) { //save if overflow
-                        _typingStates.push_back(_typingStatesData);
-                        _typingStatesData.clear();
-                    }
-                    _typingStatesData.push_back(_longWordHelper[i]);
-                }
-                _typingStates.push_back(_typingStatesData);
+                saveChunkedStates(_longWordHelper);
                 _longWordHelper.clear();
             }
-            
+
             //save current word
-            _typingStatesData.clear();
-            for (i = 0; i < _index; i++) {
-                _typingStatesData.push_back(TypingWord[i]);
-            }
-            _typingStates.push_back(_typingStatesData);
+            _typingStates.emplace_back(TypingWord, TypingWord + _index);
         }
     } else { //save macro words
-        _typingStatesData.clear();
-        for (i = 0; i < hMacroData.size(); i++) {
-            if (i != 0 && i % MAX_BUFF == 0) { //break if overflow
-                _typingStates.push_back(_typingStatesData);
-                _typingStatesData.clear();
-            }
-            _typingStatesData.push_back(hMacroData[i]);
-        }
-        _typingStates.push_back(_typingStatesData);
+        saveChunkedStates(hMacroData);
     }
 }
 
 void saveWord(const Uint32& keyCode, const int& count) {
-    _typingStatesData.clear();
-    for (i = 0; i < count; i++) {
-        _typingStatesData.push_back(keyCode);
-    }
-    _typingStates.push_back(_typingStatesData);
+    _typingStates.emplace_back(count > 0 ? (size_t)count : 0, keyCode);
 }
 
 void saveSpecialChar() {
-    _typingStatesData.clear();
-    for (i = 0; i < _specialChar.size(); i++) {
-        _typingStatesData.push_back(_specialChar[i]);
-    }
-    _typingStates.push_back(_typingStatesData);
+    _typingStates.push_back(std::move(_specialChar));
     _specialChar.clear();
 }
 
 void restoreLastTypingState() {
     if (_typingStates.size() > 0) {
-        _typingStatesData = _typingStates.back();
+        _typingStatesData = std::move(_typingStates.back());
         _typingStates.pop_back();
         if (_typingStatesData.size() > 0){
             if (_typingStatesData[0] == KEY_SPACE) {
@@ -537,24 +509,25 @@ Uint32 getCharacterCode(const Uint32& data) {
         } else if (data & TONEW_MASK) {
             key |= TONEW_MASK;
         }
-        if (_codeTable[vCodeTable].find(key) == _codeTable[vCodeTable].end())
+        auto it = _codeTable[vCodeTable].find(key);
+        if (it == _codeTable[vCodeTable].end())
             return data; //not found
-        
-        return _codeTable[vCodeTable][key][markElem] | CHAR_CODE_MASK;
+
+        return it->second[markElem] | CHAR_CODE_MASK;
     } else { //doesn't has mark
-        if (_codeTable[vCodeTable].find(key) == _codeTable[vCodeTable].end())
+        if (!(data & (TONE_MASK | TONEW_MASK)))
             return data; //not found
-        
+
+        auto it = _codeTable[vCodeTable].find(key);
+        if (it == _codeTable[vCodeTable].end())
+            return data; //not found
+
         if (data & TONE_MASK) {
-            return _codeTable[vCodeTable][key][capsElem] | CHAR_CODE_MASK;
-        } else if (data & TONEW_MASK) {
-            return _codeTable[vCodeTable][key][capsElem + 2] | CHAR_CODE_MASK;
+            return it->second[capsElem] | CHAR_CODE_MASK;
         } else {
-            return data; //not found
+            return it->second[capsElem + 2] | CHAR_CODE_MASK;
         }
     }
-    
-    return 0;
 }
 
 void findAndCalculateVowel(const bool& forGrammar) {
@@ -977,10 +950,6 @@ void insertW(const Uint16& data, const bool& isCaps) {
         }
     }
     hNCC = hBPC;
-    
-    if (isRestoredW) {
-        //_index = 0;
-    }
 }
 
 void reverseLastStandaloneChar(const Uint32& keyCode, const bool& isCaps) {
@@ -1196,9 +1165,10 @@ void handleQuickTelex(const Uint16& data, const bool& isCaps) {
     hCode = vWillProcess;
     hBPC = 1;
     hNCC = 2;
-    hData[1] = _quickTelex[data][0] | (isCaps ? CAPS_MASK : 0);
-    hData[0] = _quickTelex[data][1] | (isCaps ? CAPS_MASK : 0);
-    insertKey(_quickTelex[data][1], isCaps, false);
+    const vector<Uint16>& quickKey = _quickTelex[data];
+    hData[1] = quickKey[0] | (isCaps ? CAPS_MASK : 0);
+    hData[0] = quickKey[1] | (isCaps ? CAPS_MASK : 0);
+    insertKey(quickKey[1], isCaps, false);
 }
 
 bool checkRestoreIfWrongSpelling(const int& handleCode) {

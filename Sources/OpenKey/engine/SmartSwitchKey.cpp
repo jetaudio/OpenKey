@@ -75,16 +75,18 @@ int getAppInputMethodStatus(const string& bundleId, const int& currentInputMetho
     if (_cacheKey.compare(bundleId) == 0) {
         return _cacheData;
     }
-    if (_smartSwitchKeyData.find(bundleId) != _smartSwitchKeyData.end()) {
+    map<string, Int8>::iterator it = _smartSwitchKeyData.find(bundleId);
+    if (it != _smartSwitchKeyData.end()) {
         _cacheKey = bundleId;
-        _cacheData = _smartSwitchKeyData[bundleId];
+        _cacheData = it->second;
         return _cacheData;
     }
     _cacheKey = bundleId;
     // Bit 0 is language; higher bits contain the remembered code table.
-    _cacheData = isDefaultEnglishApp(bundleId) ? currentInputMethod & ~1 : currentInputMethod;
+    const bool isEnglishApp = isDefaultEnglishApp(bundleId);
+    _cacheData = isEnglishApp ? currentInputMethod & ~1 : currentInputMethod;
     _smartSwitchKeyData[bundleId] = _cacheData;
-    return isDefaultEnglishApp(bundleId) ? _cacheData : -1;
+    return isEnglishApp ? _cacheData : -1;
 }
 
 void setAppInputMethodStatus(const string& bundleId, const int& language) {
