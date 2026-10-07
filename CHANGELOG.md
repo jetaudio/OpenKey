@@ -10,6 +10,18 @@ identified by the source commit in their file name, for example
 
 ## [Unreleased]
 
+### Changed
+
+- The update checker on macOS and Windows reads `version.json` from this
+  repository, and the Windows updater downloads from its releases. The About
+  and preferences links point to this repository.
+- On macOS, accepting an update opens the latest release page. The app has no
+  bundled update helper, so it used to quit without updating.
+- The README defaults to Vietnamese, and the English version is `README.en.md`.
+  The screenshot follows the light or dark GitHub theme.
+- `scripts/test-macos-ui.sh` renders the dark appearance when
+  `OPENKEY_UI_APPEARANCE=dark` is set.
+
 ## [2.0.5] – 2026-10-07
 
 First release of the jetaudio fork. macOS 2.0.5 (build 49), Windows 2.0.5.

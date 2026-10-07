@@ -721,7 +721,7 @@ static const CGFloat kSettingsMaxHeight = 640;
 }
 
 - (IBAction)onSourceCode:(id)sender {
-  [[NSWorkspace sharedWorkspace] openURL: [NSURL URLWithString:@"https://github.com/tuyenvm/OpenKey"]];
+  [[NSWorkspace sharedWorkspace] openURL: [NSURL URLWithString:@"https://github.com/jetaudio/OpenKey"]];
 }
 
 - (IBAction)onCheckNewVersionButton:(id)sender {

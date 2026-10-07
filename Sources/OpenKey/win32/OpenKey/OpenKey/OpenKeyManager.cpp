@@ -58,7 +58,7 @@ bool OpenKeyManager::reinitHooks() {
 }
 
 bool OpenKeyManager::checkUpdate(string& newVersion) {
-	wstring dataW = OpenKeyHelper::getContentOfUrl(L"https://raw.githubusercontent.com/tuyenvm/OpenKey/master/version.json");
+	wstring dataW = OpenKeyHelper::getContentOfUrl(L"https://raw.githubusercontent.com/jetaudio/OpenKey/master/version.json");
 	string data = wideStringToUtf8(dataW);
 
 	//simple parse
