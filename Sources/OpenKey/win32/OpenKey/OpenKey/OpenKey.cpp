@@ -13,6 +13,7 @@ redistribute your new version, it MUST be open source.
 -----------------------------------------------------------*/
 #include "stdafx.h"
 #include "AppDelegate.h"
+#include "WindowsRime.h"
 
 #pragma comment(lib, "imm32")
 #define IMC_GETOPENSTATUS 0x0005
@@ -60,6 +61,7 @@ static int _languageTemp = 0; //use for smart switch key
 static vector<Byte> savedSmartSwitchKeyData; ////use for smart switch key
 
 static bool _hasJustUsedHotKey = false;
+static bool _switchHotKeyDown = false;
 
 static INPUT backspaceEvent[2];
 static INPUT keyEvent[2];
@@ -72,6 +74,7 @@ void OpenKeyFree() {
 	UnhookWindowsHookEx(hMouseHook);
 	UnhookWindowsHookEx(hKeyboardHook);
 	UnhookWinEvent(hSystemEvent);
+	ChineseInput::stop();
 }
 
 // Reinstall after unlock, without periodically interrupting active typing.
@@ -90,7 +93,10 @@ bool OpenKeyReinitHooks() {
     }
 
     // Keep the previous hooks until every replacement has been created.
-    OpenKeyFree();
+    UnhookWindowsHookEx(hMouseHook);
+    UnhookWindowsHookEx(hKeyboardHook);
+    UnhookWinEvent(hSystemEvent);
+    ChineseInput::reset();
     hKeyboardHook = keyboard;
     hMouseHook = mouse;
     hSystemEvent = foreground;
@@ -106,6 +112,7 @@ bool OpenKeyReinitHooks() {
     _keycode = 0;
     _isFlagKey = false;
     _hasJustUsedHotKey = false;
+    _switchHotKeyDown = false;
     _syncKey.clear();
     startNewSession();
     return true;
@@ -113,13 +120,21 @@ bool OpenKeyReinitHooks() {
 
 void OpenKeyInit() {
 	APP_GET_DATA(vLanguage, 1);
+	APP_GET_DATA(vChineseMode, 0);
+	if (vChineseMode) vLanguage = 0;
+	ChineseInput::start();
 	APP_GET_DATA(vInputType, 0);
 	vFreeMark = 0;
 	APP_GET_DATA(vCodeTable, 0);
 	APP_GET_DATA(vCheckSpelling, 1);
 	APP_GET_DATA(vUseModernOrthography, 0);
 	APP_GET_DATA(vQuickTelex, 0);
-	APP_GET_DATA(vSwitchKeyStatus, 0x7A000206);
+	APP_GET_DATA(vSwitchKeyStatus, DEFAULT_SWITCH_STATUS);
+	// Earlier Windows builds loaded the macOS Alt+Z default (key code 6).
+	// Repair only that value, preserving user shortcuts and the beep setting.
+	if ((vSwitchKeyStatus & ~0x8000) == 0x7A000206) {
+		APP_SET_DATA(vSwitchKeyStatus, DEFAULT_SWITCH_STATUS | (vSwitchKeyStatus & 0x8000));
+	}
 	APP_GET_DATA(vRestoreIfWrongSpelling, 1);
 	APP_GET_DATA(vFixRecommendBrowser, 1);
 	APP_GET_DATA(vUseMacro, 1);
@@ -432,18 +447,9 @@ bool checkHotKey(int hotKeyData, bool checkKeyCode = true) {
 }
 
 void switchLanguage() {
-	if (vLanguage == 0)
-		vLanguage = 1;
-	else
-		vLanguage = 0;
+	AppDelegate::getInstance()->cycleInputMode();
 	if (HAS_BEEP(vSwitchKeyStatus))
 		MessageBeep(MB_OK);
-	AppDelegate::getInstance()->onInputMethodChangedFromHotKey();
-	if (vUseSmartSwitchKey) {
-		setAppInputMethodStatus(OpenKeyHelper::getFrontMostAppExecuteName(), vLanguage | (vCodeTable << 1));
-		saveSmartSwitchKeyData();
-	}
-	startNewSession();
 }
 
 static void SendPureCharacter(const Uint16& ch) {
@@ -519,10 +525,16 @@ static bool UnsetModifierMask(const Uint16& vkCode) {
 }
 
 LRESULT CALLBACK keyboardHookProcess(int nCode, WPARAM wParam, LPARAM lParam) {
+	if (nCode != HC_ACTION) return CallNextHookEx(hKeyboardHook, nCode, wParam, lParam);
 	keyboardData = (KBDLLHOOKSTRUCT *)lParam;
 	//ignore my event
 	if (keyboardData->dwExtraInfo != 0) {
 		return CallNextHookEx(hKeyboardHook, nCode, wParam, lParam);
+	}
+	if ((wParam == WM_KEYUP || wParam == WM_SYSKEYUP) && _switchHotKeyDown &&
+		keyboardData->vkCode == GET_SWITCH_KEY(vSwitchKeyStatus)) {
+		_switchHotKeyDown = false;
+		return -1;
 	}
 	
 	//ignore if IME pad is open when typing Japanese/Chinese...
@@ -550,7 +562,8 @@ LRESULT CALLBACK keyboardHookProcess(int nCode, WPARAM wParam, LPARAM lParam) {
 			_lastFlag = 0;
 		} else {
 			if (GET_SWITCH_KEY(vSwitchKeyStatus) == _keycode && checkHotKey(vSwitchKeyStatus, GET_SWITCH_KEY(vSwitchKeyStatus) != 0xFE)) {
-				switchLanguage();
+				if (!_switchHotKeyDown) switchLanguage();
+				_switchHotKeyDown = true;
 				_hasJustUsedHotKey = true;
 				_keycode = 0;
 				return -1;
@@ -589,6 +602,11 @@ LRESULT CALLBACK keyboardHookProcess(int nCode, WPARAM wParam, LPARAM lParam) {
 		_keycode = 0;
 		return CallNextHookEx(hKeyboardHook, nCode, wParam, lParam);
 	}
+
+	// Chinese key-up filtering also runs after leaving Chinese mode so swallowed
+	// key-downs cannot leave unmatched releases in the target application.
+	if (ChineseInput::handleKey(wParam, *keyboardData, _flag)) return -1;
+	if (vChineseMode) return CallNextHookEx(hKeyboardHook, nCode, wParam, lParam);
 
 	//if is in english mode
 	if (vLanguage == 0) {
@@ -677,6 +695,7 @@ LRESULT CALLBACK keyboardHookProcess(int nCode, WPARAM wParam, LPARAM lParam) {
 }
 
 LRESULT CALLBACK mouseHookProcess(int nCode, WPARAM wParam, LPARAM lParam) {
+	if (nCode != HC_ACTION) return CallNextHookEx(hMouseHook, nCode, wParam, lParam);
 	switch (wParam) {
 	case WM_LBUTTONDOWN:
 	
@@ -689,6 +708,11 @@ LRESULT CALLBACK mouseHookProcess(int nCode, WPARAM wParam, LPARAM lParam) {
 	case WM_MBUTTONUP:
 	case WM_XBUTTONUP:
 	case WM_NCXBUTTONUP:
+		if (vChineseMode) {
+			MSLLHOOKSTRUCT* mouse = reinterpret_cast<MSLLHOOKSTRUCT*>(lParam);
+			if (!ChineseInput::containsWindow(WindowFromPoint(mouse->pt))) ChineseInput::reset();
+			break;
+		}
 		//send event signal to Engine
 		vKeyHandleEvent(vKeyEvent::Mouse, vKeyEventState::MouseDown, 0);
 		if (IS_DOUBLE_CODE(vCodeTable)) { //VNI
@@ -700,6 +724,10 @@ LRESULT CALLBACK mouseHookProcess(int nCode, WPARAM wParam, LPARAM lParam) {
 }
 
 VOID CALLBACK winEventProcCallback(HWINEVENTHOOK hWinEventHook, DWORD dwEvent, HWND hwnd, LONG idObject, LONG idChild, DWORD dwEventThread, DWORD dwmsEventTime) {
+	if (vChineseMode) {
+		ChineseInput::reset();
+		return;
+	}
 	//smart switch key
 	if (vUseSmartSwitchKey || vRememberCode) {
 		string& exe = OpenKeyHelper::getFrontMostAppExecuteName();

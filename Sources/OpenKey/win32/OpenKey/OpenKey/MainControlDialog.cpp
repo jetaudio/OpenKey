@@ -111,6 +111,7 @@ void MainControlDialog::initDialog() {
 
     checkEnglish = GetDlgItem(hDlg, IDC_RADIO_METHOD_ENGLISH);
     createToolTip(checkEnglish, IDS_STRING_ENG);
+    checkChinese = GetDlgItem(hDlg, IDC_RADIO_METHOD_CHINESE);
 
     /*--------end common---------*/
 
@@ -334,8 +335,9 @@ void MainControlDialog::fillData() {
     setSwitchKeyText(textSwitchKey, (vSwitchKeyStatus >> 24) & 0xFF);
     SendMessage(checkBeep, BM_SETCHECK, HAS_BEEP(vSwitchKeyStatus) ? 1 : 0, 0);
 
-    SendMessage(checkVietnamese, BM_SETCHECK, vLanguage, 0);
-    SendMessage(checkEnglish, BM_SETCHECK, !vLanguage, 0);
+    SendMessage(checkVietnamese, BM_SETCHECK, !vChineseMode && vLanguage, 0);
+    SendMessage(checkEnglish, BM_SETCHECK, !vChineseMode && !vLanguage, 0);
+    SendMessage(checkChinese, BM_SETCHECK, vChineseMode, 0);
 
     SendMessage(checkModernOrthorgraphy, BM_SETCHECK, vUseModernOrthography ? 1 : 0, 0);
     SendMessage(checkFixRecommendBrowser, BM_SETCHECK, vFixRecommendBrowser ? 1 : 0, 0);
@@ -432,20 +434,14 @@ void MainControlDialog::onCheckboxClicked(const HWND& hWnd) {
         APP_SET_DATA(vSwitchKeyStatus, vSwitchKeyStatus);
     }
     else if (hWnd == checkVietnamese) {
-        val = (int)SendMessage(checkVietnamese, BM_GETCHECK, 0, 0);
-        APP_SET_DATA(vLanguage, val ? 1 : 0);
-        if (vUseSmartSwitchKey) {
-            setAppInputMethodStatus(OpenKeyHelper::getFrontMostAppExecuteName(), vLanguage | (vCodeTable << 1));
-            saveSmartSwitchKeyData();
-        }
+        AppDelegate::getInstance()->selectInputMode(1);
     }
     else if (hWnd == checkEnglish) {
-        val = (int)SendMessage(checkVietnamese, BM_GETCHECK, 0, 0);
-        APP_SET_DATA(vLanguage, val ? 1 : 0);
-        if (vUseSmartSwitchKey) {
-            setAppInputMethodStatus(OpenKeyHelper::getFrontMostAppExecuteName(), vLanguage | (vCodeTable << 1));
-            saveSmartSwitchKeyData();
-        }
+        AppDelegate::getInstance()->selectInputMode(0);
+    }
+    else if (hWnd == checkChinese) {
+        AppDelegate::getInstance()->selectInputMode(2);
+        fillData();
     }
     else if (hWnd == checkModernOrthorgraphy) {
         val = (int)SendMessage(hWnd, BM_GETCHECK, 0, 0);
@@ -616,13 +612,8 @@ void MainControlDialog::onUpdateButton() {
             MB_ICONEXCLAMATION | MB_YESNO
         );
         if (msgboxID == IDYES) {
-            //Call OpenKeyUpdate
-            WCHAR path[MAX_PATH];
-            GetCurrentDirectory(MAX_PATH, path);
-            wsprintf(path, TEXT("%s\\OpenKeyUpdate.exe"), path);
-            ShellExecute(0, L"", path, 0, 0, SW_SHOWNORMAL);
-
-            AppDelegate::getInstance()->onOpenKeyExit();
+            if (OpenKeyHelper::launchUpdater()) AppDelegate::getInstance()->onOpenKeyExit();
+            else MessageBoxW(hDlg, L"Không mở được trình cập nhật. Hãy tải gói Windows từ trang release.", L"OpenKey Update", MB_OK | MB_ICONERROR);
         }
 
     }

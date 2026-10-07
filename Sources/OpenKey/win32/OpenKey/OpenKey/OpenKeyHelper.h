@@ -36,6 +36,7 @@ public:
 	static string& getLastAppExecuteName();
 
 	static wstring getFullPath();
+	static bool launchUpdater();
 
 	static wstring getClipboardText(const int& type);
 	static void setClipboardText(LPCTSTR data, const int& len, const int& type);

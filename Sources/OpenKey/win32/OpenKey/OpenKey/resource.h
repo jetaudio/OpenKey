@@ -86,6 +86,7 @@
 #define IDC_RADIO_METHOD_VIETNAMESE     1008
 #define IDC_RADIO2                      1009
 #define IDC_RADIO_METHOD_ENGLISH        1009
+#define IDC_RADIO_METHOD_CHINESE        1100
 #define IDC_CHECK6                      1010
 #define IDC_CHECK_MODERN_ORTHORGRAPHY   1010
 #define IDC_CHECK7                      1011

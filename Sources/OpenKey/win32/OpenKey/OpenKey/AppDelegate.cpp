@@ -12,18 +12,19 @@ You can fork, modify, improve this program. If you
 redistribute your new version, it MUST be open source.
 -----------------------------------------------------------*/
 #include "AppDelegate.h"
+#include "WindowsRime.h"
 
 static AppDelegate* _instance;
 
 //see document in Engine.h
 int vLanguage = 1;
+int vChineseMode = 0;
 int vInputType = 0;
 int vFreeMark = 0;
 int vCodeTable = 0;
 int vCheckSpelling = 1;
 int vUseModernOrthography = 1;
 int vQuickTelex = 0;
-#define DEFAULT_SWITCH_STATUS 0x5A00025A //default option + z
 int vSwitchKeyStatus = DEFAULT_SWITCH_STATUS;
 int vRestoreIfWrongSpelling = 1;
 int vFixRecommendBrowser = 0;
@@ -74,12 +75,8 @@ void AppDelegate::checkUpdate() {
 			MB_ICONEXCLAMATION | MB_YESNO
 		);
 		if (msgboxID == IDYES) {
-			//Call OpenKeyUpdate
-			WCHAR path[MAX_PATH];
-			GetCurrentDirectory(MAX_PATH, path);
-			wsprintf(path, TEXT("%s\\OpenKeyUpdate.exe"), path);
-			ShellExecute(0, L"", path, 0, 0, SW_SHOWNORMAL);
-			AppDelegate::getInstance()->onOpenKeyExit();
+			if (OpenKeyHelper::launchUpdater()) AppDelegate::getInstance()->onOpenKeyExit();
+			else MessageBoxW(nullptr, L"Không mở được trình cập nhật. Hãy tải gói Windows từ trang release.", L"OpenKey Update", MB_OK | MB_ICONERROR);
 		}
 
 	}
@@ -170,6 +167,8 @@ void AppDelegate::onInputMethodChangedFromHotKey() {
 }
 
 void AppDelegate::onDefaultConfig() {
+	ChineseInput::reset();
+	APP_SET_DATA(vChineseMode, 0);
 	APP_SET_DATA(vLanguage, 1);
 	APP_SET_DATA(vInputType, 0);
 	vFreeMark = 0;
@@ -205,6 +204,10 @@ void AppDelegate::onDefaultConfig() {
 }
 
 void AppDelegate::onToggleVietnamese() {
+	if (vChineseMode) {
+		selectInputMode(1);
+		return;
+	}
 	APP_SET_DATA(vLanguage, vLanguage ? 0 : 1);
 	if (mainDialog) {
 		mainDialog->fillData();
@@ -213,6 +216,23 @@ void AppDelegate::onToggleVietnamese() {
 	if (vUseSmartSwitchKey) {
 		string& exe = OpenKeyHelper::getLastAppExecuteName();
 		setAppInputMethodStatus(exe, vLanguage | (vCodeTable << 1));
+		saveSmartSwitchKeyData();
+	}
+}
+
+void AppDelegate::selectInputMode(int mode) {
+	if (mode == 2 && !ChineseInput::ready()) {
+		MessageBoxW(nullptr, ChineseInput::status().c_str(), L"OpenKey Pinyin", MB_OK | MB_ICONINFORMATION);
+		return;
+	}
+	ChineseInput::reset();
+	startNewSession();
+	APP_SET_DATA(vChineseMode, mode == 2 ? 1 : 0);
+	APP_SET_DATA(vLanguage, mode == 1 ? 1 : 0);
+	if (mainDialog) mainDialog->fillData();
+	SystemTrayHelper::updateData();
+	if (!vChineseMode && vUseSmartSwitchKey) {
+		setAppInputMethodStatus(OpenKeyHelper::getFrontMostAppExecuteName(), vLanguage | (vCodeTable << 1));
 		saveSmartSwitchKeyData();
 	}
 }

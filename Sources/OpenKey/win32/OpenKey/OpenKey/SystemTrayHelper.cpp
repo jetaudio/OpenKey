@@ -21,6 +21,7 @@ redistribute your new version, it MUST be open source.
 #define POPUP_SPELLING 901
 #define POPUP_SMART_SWITCH 902
 #define POPUP_USE_MACRO 903
+#define POPUP_CHINESE 904
 
 #define POPUP_TELEX 910
 #define POPUP_VNI 911
@@ -55,6 +56,7 @@ static NOTIFYICONDATA nid;
 
 map<UINT, LPCTSTR> menuData = {
 	{POPUP_VIET_ON_OFF, _T("Bật Tiếng Việt")},
+	{POPUP_CHINESE, _T("Gõ tiếng Trung (Pinyin)")},
 	{POPUP_SPELLING, _T("Bật kiểm tra chính tả")},
 	{POPUP_SMART_SWITCH, _T("Bật loại trừ ứng dụng thông minh")},
 	{POPUP_USE_MACRO, _T("Bật gõ tắt")},
@@ -118,6 +120,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			switch (commandId) {
 			case POPUP_VIET_ON_OFF:
 				AppDelegate::getInstance()->onToggleVietnamese();
+				break;
+			case POPUP_CHINESE:
+				AppDelegate::getInstance()->selectInputMode(vChineseMode ? 1 : 2);
 				break;
 			case POPUP_SPELLING:
 				AppDelegate::getInstance()->onToggleCheckSpelling();
@@ -217,6 +222,7 @@ HWND SystemTrayHelper::createFakeWindow(const HINSTANCE & hIns) {
 void SystemTrayHelper::createPopupMenu() {
 	popupMenu = CreatePopupMenu();
 	AppendMenu(popupMenu, MF_CHECKED, POPUP_VIET_ON_OFF, menuData[POPUP_VIET_ON_OFF]);
+	AppendMenu(popupMenu, MF_UNCHECKED, POPUP_CHINESE, menuData[POPUP_CHINESE]);
 	AppendMenu(popupMenu, MF_SEPARATOR, 0, 0);
 	AppendMenu(popupMenu, MF_CHECKED, POPUP_SPELLING, menuData[POPUP_SPELLING]);
 	AppendMenu(popupMenu, MF_CHECKED, POPUP_SMART_SWITCH, menuData[POPUP_SMART_SWITCH]);
@@ -255,7 +261,47 @@ void SystemTrayHelper::createPopupMenu() {
 	SetMenuDefaultItem(popupMenu, POPUP_CONTROL_PANEL, false);
 }
 
+static HICON chineseIcon(bool gray) {
+	static HICON icons[2] = {};
+	int index = gray ? 1 : 0;
+	if (icons[index]) return icons[index];
+	BITMAPINFO bitmap = {};
+	bitmap.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	bitmap.bmiHeader.biWidth = 32;
+	bitmap.bmiHeader.biHeight = -32;
+	bitmap.bmiHeader.biPlanes = 1;
+	bitmap.bmiHeader.biBitCount = 32;
+	void* pixels = nullptr;
+	HDC dc = CreateCompatibleDC(nullptr);
+	HBITMAP color = CreateDIBSection(dc, &bitmap, DIB_RGB_COLORS, &pixels, nullptr, 0);
+	if (!color) { DeleteDC(dc); return LoadIcon(nullptr, IDI_APPLICATION); }
+	HGDIOBJ old = SelectObject(dc, color);
+	RECT rect = { 0, 0, 32, 32 };
+	HBRUSH brush = CreateSolidBrush(gray ? RGB(80, 80, 80) : RGB(27, 91, 175));
+	FillRect(dc, &rect, brush); DeleteObject(brush);
+	HFONT glyph = CreateFontW(-28, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+		OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY, DEFAULT_PITCH, L"Microsoft YaHei UI");
+	HGDIOBJ oldFont = SelectObject(dc, glyph);
+	SetBkMode(dc, TRANSPARENT); SetTextColor(dc, RGB(255, 255, 255));
+	DrawTextW(dc, L"中", 1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+	SelectObject(dc, oldFont); DeleteObject(glyph);
+	GdiFlush();
+	for (int i = 0; i < 32 * 32; ++i) static_cast<DWORD*>(pixels)[i] |= 0xff000000;
+	SelectObject(dc, old);
+	BYTE maskBits[128] = {};
+	HBITMAP mask = CreateBitmap(32, 32, 1, 1, maskBits);
+	ICONINFO info = { TRUE, 0, 0, mask, color };
+	icons[index] = CreateIconIndirect(&info);
+	DeleteObject(mask); DeleteObject(color); DeleteDC(dc);
+	return icons[index];
+}
+
 static void loadTrayIcon() {
+	if (vChineseMode) {
+		nid.hIcon = chineseIcon(vUseGrayIcon != 0);
+		wcscpy_s(nid.szTip, L"OpenKey - Tiếng Trung (Pinyin)");
+		return;
+	}
 	int icon = 0;
 	if (vLanguage) {
 		icon = vUseGrayIcon ? IDI_ICON_STATUS_VIET_10 : IDI_ICON_STATUS_VIET;
@@ -272,7 +318,8 @@ void SystemTrayHelper::updateData() {
 	loadTrayIcon();
 	Shell_NotifyIcon(NIM_MODIFY, &nid);
 
-	MODIFY_MENU(popupMenu, POPUP_VIET_ON_OFF, vLanguage);
+	MODIFY_MENU(popupMenu, POPUP_VIET_ON_OFF, !vChineseMode && vLanguage);
+	MODIFY_MENU(popupMenu, POPUP_CHINESE, vChineseMode);
 	MODIFY_MENU(popupMenu, POPUP_SPELLING, vCheckSpelling);
 	MODIFY_MENU(popupMenu, POPUP_SMART_SWITCH, vUseSmartSwitchKey);
 	MODIFY_MENU(popupMenu, POPUP_USE_MACRO, vUseMacro);

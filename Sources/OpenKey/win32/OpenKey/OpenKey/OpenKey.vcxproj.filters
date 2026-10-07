@@ -176,4 +176,11 @@
     <Manifest Include="DeclareDPIAware.manifest" />
     <Manifest Include="Style.manifest" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="WindowsRime.h"><Filter>Header Files</Filter></ClInclude>
+    <ClCompile Include="WindowsRime.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="ChineseInput.cpp"><Filter>Source Files</Filter></ClCompile>
+    <ClInclude Include="CandidatePanel.h"><Filter>Header Files</Filter></ClInclude>
+    <ClCompile Include="CandidatePanel.cpp"><Filter>Source Files</Filter></ClCompile>
+  </ItemGroup>
 </Project>

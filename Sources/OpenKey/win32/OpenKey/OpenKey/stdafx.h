@@ -58,9 +58,13 @@ extern wchar_t _logBuffer[1024];
 
 #define APP_CLASS _T("OpenKeyVietnameseInputMethod")
 
+// Alt + Z, using Windows virtual-key codes in both key fields.
+#define DEFAULT_SWITCH_STATUS 0x5A00025A
+
 extern void saveSmartSwitchKeyData();
 
 extern int vLanguage;
+extern int vChineseMode;
 extern int vInputType;
 extern int vFreeMark;
 extern int vCodeTable;

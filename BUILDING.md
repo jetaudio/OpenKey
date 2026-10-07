@@ -73,6 +73,56 @@ foreach ($arch in 'x86', 'x64') {
 
 The outputs are `OpenKey32.exe` or `OpenKey64.exe`, plus `OpenKeyUpdate.exe`, in `ArtifactOutput\<arch>\`.
 
+### Windows Pinyin input
+
+The Windows app supports simplified Chinese Pinyin through the same Rime 1.17.0
+engine and dictionaries as macOS. To build a complete runnable package:
+
+```powershell
+./scripts/build-windows.ps1
+# With Visual Studio 2026 Build Tools:
+./scripts/build-windows.ps1 -PlatformToolset v145
+```
+
+This builds the x64 and x86 app/updater, verifies the downloaded Rime DLL and
+dictionary archives against pinned SHA-256 hashes, precompiles the Pinyin
+dictionary, and runs the engine and input integration tests for each architecture.
+Outputs are in `dist/windows/x64` and `dist/windows/x86`. Python 3 and Windows
+`tar` (or `7z`) are also required. The first packaging run requires network access.
+When building directly in Visual Studio, run
+`python scripts/fetch-rime-windows.py x64 <exe-output-directory>` (or `x86`)
+after the build. Keep the `Rime` directory beside the executable when distributing
+or copying it; copying the EXE alone omits Chinese input.
+
+Select **Trung (Pinyin)** in the control panel or **Gõ tiếng Trung (Pinyin)** in
+the tray menu. Type `nihao`, then Space for `你好`. Numbers 1–7 or a click select
+candidates; PgUp/PgDn change pages, Backspace edits, and Esc cancels. The panel
+does not take focus. Application shortcuts and a focus change cancel composition.
+The existing switch hotkey cycles Vietnamese → English → Chinese → Vietnamese.
+Clicking the tray icon returns from Chinese to Vietnamese. The candidate popup
+uses a compact horizontal layout, rounded translucent surface and selection cells,
+a soft shadow, and clickable page chevrons, matching the macOS panel. It follows
+the Windows app light/dark theme and scales with the target application's DPI;
+on narrow displays, candidates wrap rather than extending off-screen.
+Chinese mode stays selected across applications; per-app Vietnamese/
+English preferences do not override it. Learned phrases are stored in
+`%LOCALAPPDATA%\OpenKey\Rime`.
+
+Rime starts in the background. Missing or incompatible Rime data is reported when
+Chinese mode is selected; Vietnamese and English input remain available.
+Windows input injection follows the target application's privilege level. If
+an elevated application rejects committed text, OpenKey offers the committed
+text on the clipboard for manual paste.
+
+Standalone Pinyin tests (with a packaged `Rime` directory):
+
+```powershell
+./scripts/test-windows-rime.ps1 -Architecture x64
+```
+
+The input integration tests mock desktop text injection, focus and panel visibility
+so they do not type into any real application or use the user's Rime learning data.
+
 ## Tests
 
 | Script | What it covers | Requires |
@@ -97,10 +147,32 @@ The in-app updaters depend on the following layout. Keep it the same for every r
 3. Tag the release `v<version>`, for example `v2.0.6`.
 4. Attach these assets:
    - `OpenKey-<version>-macOS-universal.dmg`
-   - `OpenKey-<version>-Windows.zip`, with `OpenKey32.exe`, `OpenKey64.exe` and `OpenKeyUpdate.exe` at the root of the zip
+   - `OpenKey-<version>-Windows.zip`, with `OpenKey32.exe`, `OpenKey64.exe` and `OpenKeyUpdate.exe` at the root, and the complete `Rime` directory. Both DLL/helper architectures live under `Rime/bin/x64` and `Rime/bin/x86`.
+   - Optional architecture-specific `OpenKey-<version>-Windows-x64.zip` and `-x86.zip`
    - `SHA256SUMS.txt`
 
-The Windows updater downloads `releases/download/v<version>/OpenKey-<version>-Windows.zip` and extracts `OpenKey64.exe` from the root of the zip. The macOS app opens the latest release page.
+Create and validate all three Windows ZIPs and checksums with:
+
+```powershell
+python scripts/package-windows-release.py 2.1.0 dist/windows dist/release
+```
+
+The script checks EXE versions, PE architectures and ZIP integrity. Run the Rime
+tests for both architectures against `dist/release/staging/2.1.0/combined/Rime`
+as well; this checks that their shared dictionary works with either DLL.
+
+`python tests/windows_update_package_tests.py dist/release/OpenKey-2.1.0-Windows.zip`
+tests the apply script embedded in the packaged updater. It verifies x64/x86
+updates and repeat updates, and checks that corrupt ZIPs, missing dictionaries
+and locked application files fail without deleting the previous application.
+
+The Windows updater downloads `releases/download/v<version>/OpenKey-<version>-Windows.zip`,
+waits for extraction, and copies both the matching EXE and its Rime payload. The
+app launches a temporary copy of its bundled helper so the update can replace
+the helper too. An initial update through the legacy 2.0.6 helper leaves Rime in
+`_OpenKeyUpdate/Rime`; the new app can use those files and their new helper.
+The macOS app opens the latest release page. For a Windows-only release, leave
+the macOS version metadata unchanged and link or reattach its current DMG.
 
 ## Continuous integration
 

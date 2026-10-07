@@ -6,7 +6,7 @@
 [![Release](https://img.shields.io/github/v/release/jetaudio/OpenKey)](https://github.com/jetaudio/OpenKey/releases/latest)
 ![Platforms](https://img.shields.io/badge/platforms-macOS%2012%2B%20%7C%20Windows-lightgrey)
 
-**An open-source Vietnamese input method for macOS and Windows, with Chinese Pinyin input on macOS.**
+**An open-source Vietnamese input method for macOS and Windows, with Chinese Pinyin input on both platforms.**
 
 This repository is a maintained fork of [OpenKey](https://github.com/tuyenvm/OpenKey) by Mai Vũ Tuyên.
 It builds on upstream `master` at [`89c2fd3`](https://github.com/tuyenvm/OpenKey/commit/89c2fd3bf258562f2349f89b49d81e2f140c3fc3).
@@ -44,7 +44,7 @@ Changes compared with upstream `tuyenvm/OpenKey` at `89c2fd3`. See [CHANGELOG.md
 
 | Area | Change |
 | --- | --- |
-| **Chinese input (macOS)** | A third input mode, **中**, for Simplified Chinese Pinyin. It uses [librime](https://github.com/rime/librime) with the official `pinyin_simp` schema. A candidate panel follows the caret, phrases are learned as you type, and **Shift+Delete** or **Control+K** forgets a learned phrase. The mode shortcut cycles **Tiếng Việt → English → 中**. |
+| **Chinese input (macOS and Windows)** | A third input mode, **中**, for Simplified Chinese Pinyin. It uses [librime](https://github.com/rime/librime) with the official `pinyin_simp` schema and a compact candidate panel. Phrases are learned as you type; **Shift+Delete** forgets a learned phrase (macOS also supports **Control+K**). The mode shortcut cycles **Tiếng Việt → English → 中**. |
 | **macOS interface** | The preferences, macro, convert-tool and About windows are redesigned in the macOS 26 (Tahoe) settings style. They use toolbar tabs, rounded groups, switches, inline pop-ups and a segmented modifier-key control. |
 | **Globe/Fn shortcut (macOS)** | Fn (🌐) can be used alone or with other modifiers to switch input modes. |
 | **Simple Telex 2 (Windows)** | Simple Telex 1 and 2 are available in the Windows settings and tray menu. Previously, the engine supported Simple Telex 2 but Windows did not offer it. |
@@ -108,12 +108,12 @@ Inherited from OpenKey and available on both platforms unless noted:
 ### Windows
 
 1. Download `OpenKey-<version>-Windows.zip` from the [latest release](https://github.com/jetaudio/OpenKey/releases/latest), or the **OpenKey** artifact of an [MSBuild](https://github.com/jetaudio/OpenKey/actions/workflows/msbuild.yml) run.
-2. Extract it anywhere and run `OpenKey64.exe` on 64-bit Windows or `OpenKey32.exe` on 32-bit Windows. In the 2.0.5 package these files are in `x64/` and `x86/`.
+2. Extract the entire ZIP, keep the `Rime` folder beside the EXE, and run `OpenKey64.exe` on 64-bit Windows or `OpenKey32.exe` on 32-bit Windows. Separate x64/x86 ZIPs are also available. In the 2.0.5 package the EXEs are in `x64/` and `x86/`.
 3. Accept the administrator prompt. OpenKey runs elevated so that it can type into games and elevated apps.
 
 ## Usage
 
-- **Switch input mode:** press the shortcut set in **Preferences → Phím chuyển chế độ**, or choose a mode from the menu bar or tray icon. On macOS the shortcut cycles through Vietnamese, English and Chinese.
+- **Switch input mode:** the configured shortcut cycles **Vietnamese → English → Chinese → Vietnamese** on both platforms (Windows defaults to **Alt+Z**). You can also choose a mode from the menu bar or tray icon.
 - **Use Globe (🌐) as the shortcut on macOS:** in **System Settings → Keyboard**, set *Press 🌐 key to* **Do Nothing**.
 - **Chinese mode:**
   - Type Pinyin.

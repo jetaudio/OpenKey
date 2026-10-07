@@ -18,20 +18,24 @@ redistribute your new version, it MUST be open source.
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <wincrypt.h>
 #pragma comment(lib, "Urlmon.lib")
+#pragma comment(lib, "Crypt32.lib")
 
 using namespace std;
 
 INT_PTR CALLBACK MainDialogProcess(HWND, UINT, WPARAM, LPARAM);
 void StartUpdate();
 HWND hDlg;
+const wchar_t* updateTarget = nullptr;
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
                      _In_ LPWSTR    lpCmdLine,
                      _In_ int       nCmdShow)
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
-    UNREFERENCED_PARAMETER(lpCmdLine);
+    if (wcscmp(lpCmdLine, L"--x64") == 0) updateTarget = L"OpenKey64.exe";
+    else if (wcscmp(lpCmdLine, L"--x86") == 0) updateTarget = L"OpenKey32.exe";
 
 	hDlg = CreateDialogParam(hInstance, MAKEINTRESOURCE(IDD_DIALOG_UPDATER), 0, MainDialogProcess, 0);
 	ShowWindow(hDlg, SW_SHOWNORMAL);
@@ -109,18 +113,46 @@ DWORD WINAPI UpdateThreadFunction(LPVOID lpParam) {
 	res = URLDownloadToFile(NULL, updateUrl, path, 0, NULL);
 
 	if (res == S_OK) {
-		//remove old file
-		DeleteFile(L"OpenKey64.exe");
-		//extract zip file
-		WinExec("powershell.exe -NoP -NonI -Command \"Expand-Archive '.\\_OpenKeyUpdate.zip' '.\\_OpenKeyUpdate'\" ", SW_HIDE);
-		Sleep(5000);
-		MoveFile(L"_OpenKeyUpdate\\OpenKey64.exe", L"OpenKey64.exe");
-		DeleteFile(path);
-		DeleteFile(L"_OpenKeyUpdate\\OpenKeyUpdate.exe");
-		DeleteFile(L"_OpenKeyUpdate\\OpenKey64.exe");
-		DeleteFile(L"_OpenKeyUpdate\\OpenKey32.exe");
-		RemoveDirectory(L".\\_OpenKeyUpdate");
-		MessageBox(hDlg, _T("Bạn đã cập nhật OpenKey bản mới nhất thành công!"), _T("OpenKey Update"), MB_OK);
+		BOOL host64 = FALSE;
+#ifdef _WIN64
+		host64 = TRUE;
+#else
+		IsWow64Process(GetCurrentProcess(), &host64);
+#endif
+		const wchar_t* mainExe = updateTarget ? updateTarget : (host64 && GetFileAttributesW(L"OpenKey64.exe") != INVALID_FILE_ATTRIBUTES
+			? L"OpenKey64.exe" : L"OpenKey32.exe");
+		// Wait for extraction/copy and keep the old EXE until the package is valid.
+		// Relative literal paths avoid quoting user-controlled installation paths.
+		HRSRC resource = FindResourceW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(201), RT_RCDATA);
+		HGLOBAL loaded = resource ? LoadResource(GetModuleHandleW(nullptr), resource) : nullptr;
+		const char* bytes = loaded ? static_cast<const char*>(LockResource(loaded)) : nullptr;
+		DWORD byteCount = resource ? SizeofResource(GetModuleHandleW(nullptr), resource) : 0;
+		if (!bytes || !byteCount) { ExitProcess(1); return 1; }
+		int characters = MultiByteToWideChar(CP_UTF8, 0, bytes, byteCount, nullptr, 0);
+		wstring script(characters, L'\0');
+		MultiByteToWideChar(CP_UTF8, 0, bytes, byteCount, &script[0], characters);
+		script = L"& { " + script + L" } -MainExe '" + mainExe + L"'";
+		DWORD encodedSize = 0;
+		CryptBinaryToStringW(reinterpret_cast<const BYTE*>(script.data()), (DWORD)(script.size() * sizeof(wchar_t)), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, nullptr, &encodedSize);
+		wstring encoded(encodedSize, L'\0');
+		if (!CryptBinaryToStringW(reinterpret_cast<const BYTE*>(script.data()), (DWORD)(script.size() * sizeof(wchar_t)), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, &encoded[0], &encodedSize)) { ExitProcess(1); return 1; }
+		encoded.resize(encodedSize);
+		wstring command = L"powershell.exe -NoProfile -NonInteractive -EncodedCommand " + encoded;
+		STARTUPINFOW startup = { sizeof(startup) };
+		PROCESS_INFORMATION process = {};
+		DWORD result = 1;
+		if (CreateProcessW(nullptr, &command[0], nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, currentDir, &startup, &process)) {
+			WaitForSingleObject(process.hProcess, INFINITE);
+			GetExitCodeProcess(process.hProcess, &result);
+			CloseHandle(process.hThread);
+			CloseHandle(process.hProcess);
+		}
+		if (result == 0) {
+			DeleteFile(path);
+			MessageBox(hDlg, _T("Bạn đã cập nhật OpenKey bản mới nhất thành công!"), _T("OpenKey Update"), MB_OK);
+		} else {
+			MessageBox(hDlg, _T("Không cập nhật được OpenKey. Hãy tải và giải nén đầy đủ gói Windows từ trang release."), _T("OpenKey Update"), MB_OK | MB_ICONERROR);
+		}
 		ExitProcess(0);
 	} else {
 		MessageBox(hDlg, _T("Có lỗi trong quá trình cập nhật, vui lòng thử lại sau!"), _T("OpenKey Update"), MB_OK);

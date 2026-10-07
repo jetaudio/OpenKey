@@ -10,6 +10,34 @@ identified by the source commit in their file name, for example
 
 ## [Unreleased]
 
+## [2.1.0] – 2026-10-07
+
+Windows 2.1.0. macOS remains at 2.0.6 (build 50).
+
+### Added
+
+- Chinese Pinyin input on Windows through Rime 1.17.0, with bundled, checksummed
+  dictionaries and persistent phrase learning.
+- A compact horizontal candidate panel styled after macOS, with rounded translucent
+  surfaces, soft shadows, blue selection, light/dark themes, DPI scaling and mouse paging.
+- Complete x64/x86 Windows build and packaging scripts and regression tests for
+  Pinyin conversion, key routing, mode cycling, focus changes and popup rendering.
+
+### Changed
+
+- The Windows mode hotkey cycles Vietnamese → English → Chinese → Vietnamese.
+  Holding the shortcut switches only once until its key is released.
+- Windows release ZIPs include Rime alongside the application, including both
+  DLL architectures in the combined package.
+- The Windows updater waits for archive extraction and installs the complete
+  Rime payload and the matching application architecture. Its bundled helper
+  runs from a temporary copy so it can also be updated.
+
+### Fixed
+
+- The Windows Alt+Z default now uses Windows key codes. Existing configurations
+  containing the macOS default are repaired while preserving the beep setting.
+
 ## [2.0.6] – 2026-10-07
 
 macOS 2.0.6 (build 50), Windows 2.0.6. First version that checks this fork for updates.

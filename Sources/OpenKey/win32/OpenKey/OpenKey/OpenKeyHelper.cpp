@@ -164,6 +164,32 @@ wstring OpenKeyHelper::getFullPath() {
 	return rs;
 }
 
+bool OpenKeyHelper::launchUpdater() {
+	wstring directory = getFullPath();
+	directory = directory.substr(0, directory.find_last_of(L"\\/"));
+#ifdef _WIN64
+	const wchar_t* relative = L"\\Rime\\bin\\x64\\OpenKeyUpdate.exe";
+	const wchar_t* parameters = L"--x64";
+#else
+	const wchar_t* relative = L"\\Rime\\bin\\x86\\OpenKeyUpdate.exe";
+	const wchar_t* parameters = L"--x86";
+#endif
+	wstring updater = directory + relative;
+	if (GetFileAttributesW(updater.c_str()) == INVALID_FILE_ATTRIBUTES)
+		updater = directory + L"\\_OpenKeyUpdate" + relative;
+	if (GetFileAttributesW(updater.c_str()) == INVALID_FILE_ATTRIBUTES)
+		updater = directory + L"\\OpenKeyUpdate.exe";
+	wchar_t temporaryDirectory[MAX_PATH], temporaryFile[MAX_PATH];
+	if (!GetTempPathW(MAX_PATH, temporaryDirectory) || !GetTempFileNameW(temporaryDirectory, L"OKU", 0, temporaryFile)) return false;
+	wstring runnable = wstring(temporaryFile) + L".exe";
+	DeleteFileW(temporaryFile);
+	// Running a temporary copy lets the update replace its own bundled helper.
+	if (!CopyFileW(updater.c_str(), runnable.c_str(), TRUE)) return false;
+	if ((INT_PTR)ShellExecuteW(nullptr, L"open", runnable.c_str(), parameters, directory.c_str(), SW_SHOWNORMAL) > 32) return true;
+	DeleteFileW(runnable.c_str());
+	return false;
+}
+
 wstring OpenKeyHelper::getClipboardText(const int& type) {
 	// Try opening the clipboard
 	if (!OpenClipboard(nullptr)) {

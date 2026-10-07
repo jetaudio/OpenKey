@@ -4,7 +4,7 @@
 [![MSBuild](https://github.com/jetaudio/OpenKey/actions/workflows/msbuild.yml/badge.svg)](https://github.com/jetaudio/OpenKey/actions/workflows/msbuild.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-**Bộ gõ tiếng Việt nguồn mở cho macOS và Windows. Trên macOS có thêm chế độ gõ tiếng Trung bằng Pinyin.**
+**Bộ gõ tiếng Việt nguồn mở cho macOS và Windows, hỗ trợ gõ tiếng Trung bằng Pinyin trên cả hai nền tảng.**
 
 Đây là bản fork được duy trì của [OpenKey](https://github.com/tuyenvm/OpenKey) do Mai Vũ Tuyên phát triển.
 Fork dựa trên `master` của bản gốc tại commit [`89c2fd3`](https://github.com/tuyenvm/OpenKey/commit/89c2fd3bf258562f2349f89b49d81e2f140c3fc3).
@@ -21,7 +21,7 @@ Fork bổ sung chế độ gõ tiếng Trung, giao diện macOS mới, các bả
 
 ### Tính năng mới
 
-- **Gõ tiếng Trung (macOS):** thêm chế độ thứ ba, **中**, để gõ Pinyin giản thể.
+- **Gõ tiếng Trung (macOS và Windows):** thêm chế độ thứ ba, **中**, để gõ Pinyin giản thể.
   - Dùng [librime](https://github.com/rime/librime) với bộ `pinyin_simp` chính thức.
   - Bảng ứng viên hiện ngay cạnh con trỏ.
   - Bộ gõ tự học cụm từ. **Shift+Delete** hoặc **Control+K** xóa một cụm đã học.
@@ -85,7 +85,7 @@ Các bản sửa này được tích hợp từ 8 PR còn mở ở repo gốc: #
 **Windows**
 
 1. Tải `OpenKey-<phiên bản>-Windows.zip` từ [bản phát hành mới nhất](https://github.com/jetaudio/OpenKey/releases/latest), hoặc artifact **OpenKey** của workflow [MSBuild](https://github.com/jetaudio/OpenKey/actions/workflows/msbuild.yml).
-2. Giải nén, rồi chạy `OpenKey64.exe` trên Windows 64-bit hoặc `OpenKey32.exe` trên Windows 32-bit. Riêng bản 2.0.5 để hai file này trong thư mục `x64/` và `x86/`.
+2. Giải nén toàn bộ, giữ thư mục `Rime` cạnh EXE, rồi chạy `OpenKey64.exe` trên Windows 64-bit hoặc `OpenKey32.exe` trên Windows 32-bit. Có thêm ZIP riêng cho x64/x86. Bản 2.0.5 để EXE trong thư mục `x64/` và `x86/`.
 3. Bấm đồng ý khi Windows hỏi quyền quản trị.
 
 > [!IMPORTANT]
@@ -93,14 +93,14 @@ Các bản sửa này được tích hợp từ 8 PR còn mở ở repo gốc: #
 
 ## Hướng dẫn nhanh
 
-- **Chuyển chế độ:** dùng phím tắt cài trong **Phím chuyển chế độ**, hoặc chọn trên menu bar hay khay hệ thống.
+- **Chuyển chế độ:** phím tắt xoay vòng **V → E → 中 → V** trên cả hai nền tảng; Windows mặc định **Alt+Z**. Có thể chọn trực tiếp trên menu bar hay khay hệ thống.
 - **Dùng phím 🌐 trên macOS:** vào **Cài đặt Hệ thống → Bàn phím** và đặt "Nhấn phím 🌐" thành **Không làm gì**.
 - **Chế độ 中:**
   - Gõ Pinyin.
   - **Space** chọn ứng viên đầu tiên, phím **1–7** hoặc bấm chuột để chọn ứng viên khác.
   - **−/=** hoặc **Page Up/Page Down** để lật trang.
   - **Esc** để hủy.
-  - Bật **Caps Lock** để gõ chữ Latin.
+  - Trên macOS, bật **Caps Lock** để gõ chữ Latin.
 
 ## Build và kiểm thử
 

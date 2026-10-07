@@ -67,6 +67,22 @@ jobs:
             $expected = if ($arch -eq 'x86') { 0x14c } else { 0x8664 }
             if ($machine -ne $expected) { throw "Wrong architecture: $path" }
           }
+          python scripts/fetch-rime-windows.py $arch $output
+          if ($LASTEXITCODE -ne 0) { throw "Rime packaging failed: $arch" }
+          Copy-Item -LiteralPath (Join-Path $output 'OpenKeyUpdate.exe') -Destination (Join-Path $output "Rime/bin/$arch/OpenKeyUpdate.exe") -Force
+          ./scripts/test-windows-rime.ps1 -Architecture $arch -Bundle (Join-Path $output 'Rime')
+        }
+
+    - name: Verify complete Windows release packages
+      shell: pwsh
+      run: |
+        $version = (Get-Content version.json -Raw | ConvertFrom-Json).latestWinVersion.versionName
+        python scripts/package-windows-release.py $version ArtifactOutput dist/release
+        if ($LASTEXITCODE -ne 0) { throw 'Release packaging failed' }
+        python tests/windows_update_package_tests.py "dist/release/OpenKey-$version-Windows.zip"
+        if ($LASTEXITCODE -ne 0) { throw 'Updater package tests failed' }
+        foreach ($arch in @('x64', 'x86')) {
+          ./scripts/test-windows-rime.ps1 -Architecture $arch -Bundle "$env:GITHUB_WORKSPACE/dist/release/staging/$version/combined/Rime"
         }
 
     - name: Upload a Build Artifact
@@ -76,7 +92,11 @@ jobs:
         name: OpenKey
         path: |
           ArtifactOutput/x86/*.exe
+          ArtifactOutput/x86/Rime/**
           ArtifactOutput/x64/*.exe
+          ArtifactOutput/x64/Rime/**
+          dist/release/*.zip
+          dist/release/SHA256SUMS.txt
         if-no-files-found: error
 
     outputs:
