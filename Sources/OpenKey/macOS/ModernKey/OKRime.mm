@@ -172,16 +172,19 @@ static const int kRimeAltMask = 1 << 3;
     if (_ready) _api->clear_composition(_session);
 }
 
-+ (int)keysymForEvent:(CGEventRef)event keyCode:(CGKeyCode)keyCode flags:(CGEventFlags)flags mask:(int *)mask {
++ (int)keysymForEvent:(CGEventRef)event keyCode:(CGKeyCode)keyCode flags:(CGEventFlags)flags
+            composing:(BOOL)composing mask:(int *)mask {
     int modifiers = 0;
     if (flags & kCGEventFlagMaskControl) modifiers |= kRimeControlMask;
     if (flags & kCGEventFlagMaskAlternate) modifiers |= kRimeAltMask;
+    // Shift+Delete removes the highlighted phrase from what Rime learned.
+    int shift = (flags & kCGEventFlagMaskShift) ? kRimeShiftMask : 0;
     switch (keyCode) {
-        case kVK_Delete: *mask = modifiers; return 0xff08;          // BackSpace
-        case kVK_ForwardDelete: *mask = modifiers; return 0xffff;   // Delete
+        case kVK_Delete: *mask = modifiers | shift; return 0xff08;         // BackSpace
+        case kVK_ForwardDelete: *mask = modifiers | shift; return 0xffff;  // Delete
         case kVK_Return: case kVK_ANSI_KeypadEnter: *mask = modifiers; return 0xff0d;
         case kVK_Escape: *mask = modifiers; return 0xff1b;
-        case kVK_Tab: *mask = modifiers | ((flags & kCGEventFlagMaskShift) ? kRimeShiftMask : 0); return 0xff09;
+        case kVK_Tab: *mask = modifiers | shift; return 0xff09;
         case kVK_LeftArrow: *mask = modifiers; return 0xff51;
         case kVK_UpArrow: *mask = modifiers; return 0xff52;
         case kVK_RightArrow: *mask = modifiers; return 0xff53;
@@ -193,12 +196,17 @@ static const int kRimeAltMask = 1 << 3;
         case kVK_Space: *mask = modifiers; return 0x20;
         default: break;
     }
-    // Shortcuts with Control or Command belong to the application.
-    if (flags & (kCGEventFlagMaskControl | kCGEventFlagMaskCommand)) return 0;
-    // Printable keys: the character already carries Shift (and the layout).
     UniChar characters[4];
     UniCharCount length = 0;
     CGEventKeyboardGetUnicodeString(event, 4, &length, characters);
+    if (flags & kCGEventFlagMaskCommand) return 0;
+    if (flags & kCGEventFlagMaskControl) {
+        // Control turns letters into ASCII control codes 1-26.
+        if (!composing || length != 1 || characters[0] < 1 || characters[0] > 26) return 0;
+        *mask = modifiers;
+        return 'a' + characters[0] - 1;
+    }
+    // Printable keys: the character already carries Shift (and the layout).
     if (length == 1 && characters[0] > 0x20 && characters[0] < 0x7f) {
         *mask = modifiers;
         return characters[0];

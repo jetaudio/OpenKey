@@ -46,7 +46,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)clearComposition;
 
 // Translates a macOS key-down event; returns 0 for keys Rime should not see.
-+ (int)keysymForEvent:(CGEventRef)event keyCode:(CGKeyCode)keyCode flags:(CGEventFlags)flags mask:(int *)mask;
+// Control+letter reaches Rime only while composing (⌃K forgets a learned
+// phrase); otherwise Control and Command shortcuts belong to the application.
++ (int)keysymForEvent:(CGEventRef)event keyCode:(CGKeyCode)keyCode flags:(CGEventFlags)flags
+            composing:(BOOL)composing mask:(int *)mask;
 
 @end
 

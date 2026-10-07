@@ -58,7 +58,7 @@ extern "C" void OpenKeyReEnableEventTap(void) { ++recoveryCalls; }
 // Mirrors AppDelegate: 中 keeps the Vietnamese engine in English.
 - (int)currentInputMode { return vChineseMode ? 2 : vLanguage; }
 - (void)selectInputMode:(int)mode {
-    if ((mode == 2) != (vChineseMode != 0)) { vChineseMode = mode == 2; ChineseModeReset(); }
+    if ((mode == 2) != (vChineseMode != 0)) { vChineseMode = mode == 2; ChineseModeReset(); RequestNewSession(); }
     [self setInputMethod:(mode == 2 ? 0 : mode) willNotify:YES];
 }
 @end
@@ -118,13 +118,37 @@ static std::u16string typedText() {
     }
     return result;
 }
-static CGEventRef chineseKey(CGKeyCode key, UniChar character, CGEventFlags flags=0) {
+static CGEventRef chineseKey(CGKeyCode key, UniChar character, CGEventFlags flags) {
     CGEventRef event=CGEventCreateKeyboardEvent(NULL,key,true);
     CGEventSetFlags(event,flags);
     if (character) CGEventKeyboardSetUnicodeString(event,1,&character);
     _flag=flags; _keycode=key;
     CGEventRef result=OpenKeyCallback(NULL,kCGEventKeyDown,event,NULL);
     CFRelease(event);
+    return result;
+}
+static CGEventRef chineseKey(CGKeyCode key, UniChar character, CGEventFlags flags=0);
+// Types ASCII through the callback; keys the tap lets through are recorded as
+// typed, and the result is read back like an editor applying backspaces.
+static void typeThrough(const char *keys) {
+    NSDictionary *codes=@{@"a":@KEY_A,@"e":@KEY_E,@"g":@KEY_G,@"h":@KEY_H,@"i":@KEY_I,@"j":@KEY_J,@"m":@KEY_M,
+        @"n":@KEY_N,@"o":@KEY_O,@"s":@KEY_S,@"t":@KEY_T,@"v":@KEY_V,@" ":@KEY_SPACE,@"\b":@KEY_DELETE};
+    for (const char *c=keys; *c; c++) {
+        CGKeyCode code=(CGKeyCode)[codes[[NSString stringWithFormat:@"%c",*c]] intValue];
+        UniChar character=*c;
+        if (chineseKey(code,character)!=NULL) {
+            std::u16string text(1,(char16_t)character);
+            sent.push_back({kCGEventKeyDown,code,0,text}); sent.push_back({kCGEventKeyUp,code,0,text});
+        }
+    }
+}
+static std::u16string editedText() {
+    std::u16string result;
+    for (auto &event : sent) {
+        if (event.type!=kCGEventKeyDown) continue;
+        if (event.key==KEY_DELETE) { if (!result.empty()) result.pop_back(); }
+        else result+=event.text;
+    }
     return result;
 }
 static void callbackKey(CGEventType type, CGKeyCode key, CGEventFlags flags) {
@@ -174,6 +198,19 @@ static void testChineseMode() {
     OpenKeyCallback(NULL,kCGEventLeftMouseDown,click,NULL);
     CFRelease(click);
     expect([testRime composition]==nil && sent.empty(), "click elsewhere ends the composition");
+    vChineseMode=0; vLanguage=1;
+
+    // Leaving 中 starts Vietnamese afresh: an unfinished word typed before
+    // switching, or a backspace over Chinese text, must not join the next word.
+    vCheckSpelling=1; vSetCheckSpelling();
+    sent.clear(); typeThrough("tieengs");
+    [appDelegate selectInputMode:2]; typeThrough("nihao "); [appDelegate selectInputMode:1];
+    sent.clear(); typeThrough("vieejt ");
+    expect(editedText()==u"việt ", "unfinished word before 中 does not join the first word after it");
+    sent.clear(); typeThrough("tieengs ");
+    switchLanguage(); switchLanguage(); typeThrough("nihao "); switchLanguage();
+    sent.clear(); typeThrough("\bvieejt ");
+    expect(editedText()==u"việt ", "backspace after 中 does not reopen the previous Vietnamese word");
     vChineseMode=0; vLanguage=1;
     [[NSFileManager defaultManager] removeItemAtPath:user error:nil];
 }

@@ -15,12 +15,12 @@ static NSString *typeKeys(OKRime *rime, NSString *keys, int finalKey) {
     return [rime takeCommit] ?: @"";
 }
 
-static int keysym(CGKeyCode code, CGEventFlags flags, int *mask, UniChar character = 0) {
+static int keysym(CGKeyCode code, CGEventFlags flags, int *mask, UniChar character = 0, BOOL composing = NO) {
     CGEventRef event = CGEventCreateKeyboardEvent(NULL, code, true);
     CGEventSetFlags(event, flags);
     // Real key events carry the shifted character; synthesized ones need it set.
     if (character) CGEventKeyboardSetUnicodeString(event, 1, &character);
-    int result = [OKRime keysymForEvent:event keyCode:code flags:flags mask:mask];
+    int result = [OKRime keysymForEvent:event keyCode:code flags:flags composing:composing mask:mask];
     CFRelease(event);
     return result;
 }
@@ -61,7 +61,43 @@ int main(int argc, const char *argv[]) { @autoreleasepool {
     expect(keysym(kVK_Delete, 0, &mask) == 0xff08, @"backspace keysym");
     expect(keysym(kVK_Space, 0, &mask) == 0x20, @"space keysym");
     expect(keysym(kVK_Return, 0, &mask) == 0xff0d, @"return keysym");
-    expect(keysym(kVK_ANSI_A, kCGEventFlagMaskControl, &mask) == 0, @"control letter is not sent");
+    expect(keysym(kVK_ANSI_A, kCGEventFlagMaskControl, &mask, 0x01) == 0, @"control letter belongs to the app when idle");
+    expect(keysym(kVK_ANSI_K, kCGEventFlagMaskControl, &mask, 0x0b, YES) == 'k' && mask == (1 << 2), @"control letter reaches Rime while composing");
+    expect(keysym(kVK_ANSI_C, kCGEventFlagMaskCommand, &mask, 'c', YES) == 0, @"command shortcuts always belong to the app");
+    expect(keysym(kVK_ForwardDelete, kCGEventFlagMaskShift, &mask) == 0xffff && mask == 1, @"shift+delete keeps shift");
+
+    // Learning: a phrase built from single characters ranks first next time,
+    // and Shift+Delete or Control+K forgets it again.
+    typeKeys(rime, @"laoshiren", 0);
+    expect(![[rime composition].candidates.firstObject isEqualToString:@"捞尸人"], @"unlearned phrase is not first");
+    for (NSString *character in @[@"捞", @"尸", @"人"]) {
+        OKRimeComposition *page = [rime composition];
+        for (int guard = 0; guard < 40 && ![page.candidates containsObject:character]; guard++) {
+            [rime processKeysym:0xff56 mask:0];
+            page = [rime composition];
+        }
+        expect([rime selectCandidateOnCurrentPage:[page.candidates indexOfObject:character]], @"pick character");
+    }
+    expect([[rime takeCommit] isEqualToString:@"捞尸人"], @"phrase built from characters commits");
+    for (NSNumber *forget in @[@0xffff, @'k']) {
+        typeKeys(rime, @"laoshiren", 0);
+        expect([[rime composition].candidates.firstObject isEqualToString:@"捞尸人"], @"learned phrase ranks first");
+        expect([rime processKeysym:forget.intValue mask:(forget.intValue == 'k' ? (1 << 2) : 1)], @"forget key handled");
+        expect(![[rime composition].candidates containsObject:@"捞尸人"], @"forgotten phrase leaves the page");
+        [rime clearComposition];
+        if (forget.intValue == 0xffff) {
+            typeKeys(rime, @"laoshiren", 0);  // learn again for the Control+K case
+            for (NSString *character in @[@"捞", @"尸", @"人"]) {
+                OKRimeComposition *page = [rime composition];
+                for (int guard = 0; guard < 40 && ![page.candidates containsObject:character]; guard++) {
+                    [rime processKeysym:0xff56 mask:0];
+                    page = [rime composition];
+                }
+                [rime selectCandidateOnCurrentPage:[page.candidates indexOfObject:character]];
+            }
+            [rime takeCommit];
+        }
+    }
     [[NSFileManager defaultManager] removeItemAtPath:user error:nil];
     printf("Rime tests: %d assertions passed.\n", assertions);
 } }

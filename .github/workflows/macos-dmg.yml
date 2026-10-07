@@ -24,10 +24,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Engine regression tests
         run: bash scripts/test-engine.sh
-      - name: macOS event regression tests
-        run: bash scripts/test-macos-events.sh
       - name: Chinese (Rime) input tests
         run: bash scripts/test-rime.sh
+      - name: macOS event regression tests
+        run: bash scripts/test-macos-events.sh
       - name: Build and verify universal DMG
         run: bash scripts/build-macos-dmg.sh
       - name: Upload DMG and build information

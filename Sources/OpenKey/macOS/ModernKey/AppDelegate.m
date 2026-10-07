@@ -485,6 +485,9 @@ static NSImage *OKChineseStatusImage(BOOL highlighted, BOOL monochrome) {
         vChineseMode = chinese ? 1 : 0;
         [[NSUserDefaults standardUserDefaults] setInteger:vChineseMode forKey:@"ChineseMode"];
         ChineseModeReset();
+        // The Vietnamese engine sees no keys in 中, so its word and line
+        // history is stale on either side of the switch.
+        RequestNewSession();
         if (chinese) [[OKRime shared] startWithCompletion:nil];
     }
     // The Vietnamese engine stays in English while Chinese input is active.

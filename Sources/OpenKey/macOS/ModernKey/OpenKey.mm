@@ -563,7 +563,7 @@ extern "C" {
         // Caps Lock types Latin letters, as in the system Pinyin input.
         if ((_flag & kCGEventFlagMaskAlphaShift) && before == nil) return event;
         int mask = 0;
-        int keysym = [OKRime keysymForEvent:event keyCode:_keycode flags:_flag mask:&mask];
+        int keysym = [OKRime keysymForEvent:event keyCode:_keycode flags:_flag composing:(before != nil) mask:&mask];
         if (keysym == 0) return event;
         BOOL handled = [rime processKeysym:keysym mask:mask];
         NSString *commit = [rime takeCommit];
