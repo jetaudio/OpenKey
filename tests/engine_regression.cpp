@@ -22,6 +22,34 @@ static std::string convert(const std::string& text, int from, int to) {
     return convertUtil(text);
 }
 
+// Types lowercase Telex like the platform hooks do: backspaces, then the new
+// characters (stored last first), then the typed key itself on a restore.
+static std::string typeTelex(vKeyHookState* data, const std::string& keys) {
+    static const std::pair<char, Uint16> letters[] = {
+        {'a',KEY_A},{'b',KEY_B},{'c',KEY_C},{'d',KEY_D},{'e',KEY_E},{'f',KEY_F},{'g',KEY_G},{'h',KEY_H},{'i',KEY_I},
+        {'j',KEY_J},{'k',KEY_K},{'l',KEY_L},{'m',KEY_M},{'n',KEY_N},{'o',KEY_O},{'p',KEY_P},{'q',KEY_Q},{'r',KEY_R},
+        {'s',KEY_S},{'t',KEY_T},{'u',KEY_U},{'v',KEY_V},{'w',KEY_W},{'x',KEY_X},{'y',KEY_Y},{'z',KEY_Z}};
+    auto letterFor = [&](Uint16 code) { for (auto& l : letters) if (l.second == code) return (wchar_t)l.first; return L'?'; };
+    std::wstring text;
+    startNewSession();
+    for (char key : keys) {
+        Uint16 code = 0;
+        for (auto& l : letters) if (l.first == key) code = l.second;
+        vKeyHandleEvent(vKeyEvent::Keyboard, vKeyEventState::KeyDown, code, 0, false);
+        if (data->code != vWillProcess && data->code != vRestore && data->code != vRestoreAndStartNewSession) {
+            text += (wchar_t)key;
+            continue;
+        }
+        for (int i = 0; i < data->backspaceCount && !text.empty(); i++) text.pop_back();
+        for (int i = data->newCharCount - 1; i >= 0; i--) {
+            Uint32 c = data->charData[i];
+            text += (c & CHAR_CODE_MASK) ? (wchar_t)(c & CHAR_MASK) : letterFor((Uint16)c);
+        }
+        if (data->code != vWillProcess) text += (wchar_t)key;
+    }
+    return wideStringToUtf8(text);
+}
+
 int main() {
     resetConversion();
     expect(convertUtil(u8"Đặng THỊ Ánh Mixed ASCII") == u8"Đặng THỊ Ánh Mixed ASCII", "preserve original case");
@@ -99,5 +127,26 @@ int main() {
     getSmartSwitchKeySaveData(saved);
     expect(saved.size() == 2, "truncated preference data is ignored safely");
     expect(getAppInputMethodStatus("", packed) == -1, "unknown app does not become preference");
+
+    // Tone placement in old (hòa) and modern (hoà) orthography. ia/ua are
+    // placed by rule 4 of handleModernMark: khuấy must not become khúây.
+    vKeyHookState* typing = (vKeyHookState*)vKeyInit();
+    const struct { const char *keys, *modern, *old; } words[] = {
+        {"tieengs", u8"tiếng", u8"tiếng"}, {"nguwowif", u8"người", u8"người"}, {"chieeuf", u8"chiều", u8"chiều"},
+        {"yeeus", u8"yếu", u8"yếu"}, {"khuaays", u8"khuấy", u8"khuấy"}, {"nguaayr", u8"nguẩy", u8"nguẩy"},
+        {"tuaans", u8"tuấn", u8"tuấn"}, {"chuaanr", u8"chuẩn", u8"chuẩn"}, {"quas", u8"quá", u8"quá"},
+        {"gieets", u8"giết", u8"giết"}, {"hoaf", u8"hoà", u8"hòa"}, {"thuys", u8"thuý", u8"thúy"},
+        {"khoer", u8"khoẻ", u8"khỏe"}, {"muwaf", u8"mừa", u8"mừa"}, {"nguwas", u8"ngứa", u8"ngứa"},
+        {"khuyeenr", u8"khuyển", u8"khuyển"}, {"khuyur", u8"khuỷu", u8"khuỷu"}, {"thuowr", u8"thuở", u8"thuở"},
+        {"ddaays", u8"đấy", u8"đấy"}, {"giuwax", u8"giữa", u8"giữa"}, {"kias", u8"kía", u8"kía"},
+        {"muaf", u8"mùa", u8"mùa"}, {"thuyeenf", u8"thuyền", u8"thuyền"}, {"quyeets", u8"quyết", u8"quyết"},
+    };
+    for (int modern = 0; modern < 2; ++modern) {
+        vUseModernOrthography = modern;
+        for (const auto& word : words)
+            expect(typeTelex(typing, word.keys) == (modern ? word.modern : word.old),
+                std::string("tone placement ") + word.keys + (modern ? " modern" : " old"));
+    }
+    vUseModernOrthography = 0;
     std::cout << "Engine regression tests: " << assertions << " assertions passed.\n";
 }

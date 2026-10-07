@@ -632,8 +632,8 @@ void handleModernMark() {
     }
     
     //rule 3.1
-    if ((CHR(VSI) == KEY_I && (TypingWord[VSI+1] & (KEY_E | TONE_MASK))) ||
-        (CHR(VSI) == KEY_Y && (TypingWord[VSI+1] & (KEY_E | TONE_MASK))) ||
+    if ((CHR(VSI) == KEY_I && (TypingWord[VSI+1] == (KEY_E | TONE_MASK))) ||
+        (CHR(VSI) == KEY_Y && (TypingWord[VSI+1] == (KEY_E | TONE_MASK))) ||
         (CHR(VSI) == KEY_U && (TypingWord[VSI+1] == (KEY_O | TONE_MASK))) ||
         ((TypingWord[VSI] == (KEY_U | TONEW_MASK)) && (TypingWord[VSI+1] == (KEY_O | TONEW_MASK)))){
         
@@ -641,10 +641,7 @@ void handleModernMark() {
             if (CHR(VSI+2) == KEY_P || CHR(VSI+2) == KEY_T ||
                 CHR(VSI+2) == KEY_M || CHR(VSI+2) == KEY_N ||
                 CHR(VSI+2) == KEY_O || CHR(VSI+2) == KEY_U ||
-                CHR(VSI+2) == KEY_I || CHR(VSI+2) == KEY_C ||
-                (VSI+3 < _index && CHR(VSI+2) == KEY_C && CHR(VSI+2) == KEY_H) ||
-                (VSI+3 < _index && CHR(VSI+2) == KEY_N && CHR(VSI+2) == KEY_H) ||
-                (VSI+3 < _index && CHR(VSI+2) == KEY_N && CHR(VSI+2) == KEY_G)) {
+                CHR(VSI+2) == KEY_I || CHR(VSI+2) == KEY_C) { //C and N also cover ch, nh, ng
                 
                 VWSM = VSI + 1;
                 hBPC = _index - VWSM;
@@ -658,10 +655,8 @@ void handleModernMark() {
         }
     }
     //rule 3.2
-    else if ((CHR(VSI) == KEY_I && (CHR(VSI) == KEY_A)) ||
-             (CHR(VSI) == KEY_Y && (CHR(VSI) == KEY_A)) ||
-             (CHR(VSI) == KEY_U && (CHR(VSI) == KEY_A)) ||
-             (CHR(VSI) == KEY_U && (TypingWord[VSI+1] == (KEY_U | TONEW_MASK)))){
+    //(ia, ua are placed by rule 4; moving ua here would give "khúây")
+    else if (CHR(VSI) == KEY_U && (TypingWord[VSI+1] == (KEY_U | TONEW_MASK))) {
         
         VWSM = VSI;
         hBPC = _index - VWSM;
