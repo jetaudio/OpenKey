@@ -312,36 +312,37 @@ static NSImage *OKChineseStatusImage(BOOL highlighted, BOOL monochrome) {
 }
 
 -(void)loadDefaultConfig {
-    vChineseMode = 0; [[NSUserDefaults standardUserDefaults] setInteger:vChineseMode forKey:@"ChineseMode"];
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    vChineseMode = 0; [defaults setInteger:vChineseMode forKey:@"ChineseMode"];
     ChineseModeReset();
-    vLanguage = 1; [[NSUserDefaults standardUserDefaults] setInteger:vLanguage forKey:@"InputMethod"];
-    vInputType = 0; [[NSUserDefaults standardUserDefaults] setInteger:vInputType forKey:@"InputType"];
-    vFreeMark = 0; [[NSUserDefaults standardUserDefaults] setInteger:vFreeMark forKey:@"FreeMark"];
-    vCheckSpelling = 1; [[NSUserDefaults standardUserDefaults] setInteger:vCheckSpelling forKey:@"Spelling"];
-    vCodeTable = 0; [[NSUserDefaults standardUserDefaults] setInteger:vCodeTable forKey:@"CodeTable"];
-    vSwitchKeyStatus = DEFAULT_SWITCH_STATUS; [[NSUserDefaults standardUserDefaults] setInteger:vSwitchKeyStatus forKey:@"SwitchKeyStatus"];
-    vQuickTelex = 0; [[NSUserDefaults standardUserDefaults] setInteger:vQuickTelex forKey:@"QuickTelex"];
-    vUseModernOrthography = 0; [[NSUserDefaults standardUserDefaults] setInteger:vUseModernOrthography forKey:@"ModernOrthography"];
-    vRestoreIfWrongSpelling = 0; [[NSUserDefaults standardUserDefaults] setInteger:vRestoreIfWrongSpelling forKey:@"RestoreIfInvalidWord"];
-    vFixRecommendBrowser = 1; [[NSUserDefaults standardUserDefaults] setInteger:vFixRecommendBrowser forKey:@"FixRecommendBrowser"];
-    vUseMacro = 1; [[NSUserDefaults standardUserDefaults] setInteger:vUseMacro forKey:@"UseMacro"];
-    vUseMacroInEnglishMode = 0; [[NSUserDefaults standardUserDefaults] setInteger:vUseMacroInEnglishMode forKey:@"UseMacroInEnglishMode"];
-    vSendKeyStepByStep = 0;[[NSUserDefaults standardUserDefaults] setInteger:vUseMacroInEnglishMode forKey:@"SendKeyStepByStep"];
-    vUseSmartSwitchKey = 1;[[NSUserDefaults standardUserDefaults] setInteger:vUseSmartSwitchKey forKey:@"UseSmartSwitchKey"];
-    vUpperCaseFirstChar = 0;[[NSUserDefaults standardUserDefaults] setInteger:vUpperCaseFirstChar forKey:@"UpperCaseFirstChar"];
-    vTempOffSpelling = 0;[[NSUserDefaults standardUserDefaults] setInteger:vTempOffSpelling forKey:@"vTempOffSpelling"];
-    vAllowConsonantZFWJ = 0;[[NSUserDefaults standardUserDefaults] setInteger:vAllowConsonantZFWJ forKey:@"vAllowConsonantZFWJ"];
-    vQuickStartConsonant = 0;[[NSUserDefaults standardUserDefaults] setInteger:vQuickStartConsonant forKey:@"vQuickStartConsonant"];
-    vQuickEndConsonant = 0;[[NSUserDefaults standardUserDefaults] setInteger:vQuickEndConsonant forKey:@"vQuickEndConsonant"];
-    vRememberCode = 1;[[NSUserDefaults standardUserDefaults] setInteger:vRememberCode forKey:@"vRememberCode"];
-    vOtherLanguage = 1;[[NSUserDefaults standardUserDefaults] setInteger:vOtherLanguage forKey:@"vOtherLanguage"];
-    vTempOffOpenKey = 0;[[NSUserDefaults standardUserDefaults] setInteger:vTempOffOpenKey forKey:@"vTempOffOpenKey"];
-    vShowIconOnDock = 0;[[NSUserDefaults standardUserDefaults] setInteger:vShowIconOnDock forKey:@"vShowIconOnDock"];
-    vFixChromiumBrowser = 0;[[NSUserDefaults standardUserDefaults] setInteger:vFixChromiumBrowser forKey:@"vFixChromiumBrowser"];
-    vPerformLayoutCompat = 0;[[NSUserDefaults standardUserDefaults] setInteger:vPerformLayoutCompat forKey:@"vPerformLayoutCompat"];
+    vLanguage = 1; [defaults setInteger:vLanguage forKey:@"InputMethod"];
+    vInputType = 0; [defaults setInteger:vInputType forKey:@"InputType"];
+    vFreeMark = 0; [defaults setInteger:vFreeMark forKey:@"FreeMark"];
+    vCheckSpelling = 1; [defaults setInteger:vCheckSpelling forKey:@"Spelling"];
+    vCodeTable = 0; [defaults setInteger:vCodeTable forKey:@"CodeTable"];
+    vSwitchKeyStatus = DEFAULT_SWITCH_STATUS; [defaults setInteger:vSwitchKeyStatus forKey:@"SwitchKeyStatus"];
+    vQuickTelex = 0; [defaults setInteger:vQuickTelex forKey:@"QuickTelex"];
+    vUseModernOrthography = 0; [defaults setInteger:vUseModernOrthography forKey:@"ModernOrthography"];
+    vRestoreIfWrongSpelling = 0; [defaults setInteger:vRestoreIfWrongSpelling forKey:@"RestoreIfInvalidWord"];
+    vFixRecommendBrowser = 1; [defaults setInteger:vFixRecommendBrowser forKey:@"FixRecommendBrowser"];
+    vUseMacro = 1; [defaults setInteger:vUseMacro forKey:@"UseMacro"];
+    vUseMacroInEnglishMode = 0; [defaults setInteger:vUseMacroInEnglishMode forKey:@"UseMacroInEnglishMode"];
+    vSendKeyStepByStep = 0;[defaults setInteger:vSendKeyStepByStep forKey:@"SendKeyStepByStep"];
+    vUseSmartSwitchKey = 1;[defaults setInteger:vUseSmartSwitchKey forKey:@"UseSmartSwitchKey"];
+    vUpperCaseFirstChar = 0;[defaults setInteger:vUpperCaseFirstChar forKey:@"UpperCaseFirstChar"];
+    vTempOffSpelling = 0;[defaults setInteger:vTempOffSpelling forKey:@"vTempOffSpelling"];
+    vAllowConsonantZFWJ = 0;[defaults setInteger:vAllowConsonantZFWJ forKey:@"vAllowConsonantZFWJ"];
+    vQuickStartConsonant = 0;[defaults setInteger:vQuickStartConsonant forKey:@"vQuickStartConsonant"];
+    vQuickEndConsonant = 0;[defaults setInteger:vQuickEndConsonant forKey:@"vQuickEndConsonant"];
+    vRememberCode = 1;[defaults setInteger:vRememberCode forKey:@"vRememberCode"];
+    vOtherLanguage = 1;[defaults setInteger:vOtherLanguage forKey:@"vOtherLanguage"];
+    vTempOffOpenKey = 0;[defaults setInteger:vTempOffOpenKey forKey:@"vTempOffOpenKey"];
+    vShowIconOnDock = 0;[defaults setInteger:vShowIconOnDock forKey:@"vShowIconOnDock"];
+    vFixChromiumBrowser = 0;[defaults setInteger:vFixChromiumBrowser forKey:@"vFixChromiumBrowser"];
+    vPerformLayoutCompat = 0;[defaults setInteger:vPerformLayoutCompat forKey:@"vPerformLayoutCompat"];
 
-    [[NSUserDefaults standardUserDefaults] setInteger:1 forKey:@"GrayIcon"];
-    [[NSUserDefaults standardUserDefaults] setInteger:1 forKey:@"RunOnStartup"];
+    [defaults setInteger:1 forKey:@"GrayIcon"];
+    [defaults setInteger:1 forKey:@"RunOnStartup"];
     [self setRunOnStartup:YES];
 
     [self fillData];
@@ -403,10 +404,18 @@ static NSImage *OKChineseStatusImage(BOOL highlighted, BOOL monochrome) {
     [theMenu setSubmenu:sub forItem:parent];
 }
 
+// Checks the item whose tag matches the selected index and unchecks the rest.
+static void OKSelectMenuItemWithTag(NSArray<NSMenuItem *> *items, NSInteger tag) {
+    for (NSMenuItem *item in items) {
+        [item setState:(item.tag == tag ? NSControlStateValueOn : NSControlStateValueOff)];
+    }
+}
+
 - (void) fillData {
     //fill data
-    NSInteger intInputMethod = [[NSUserDefaults standardUserDefaults] integerForKey:@"InputMethod"];
-    NSInteger grayIcon = [[NSUserDefaults standardUserDefaults] integerForKey:@"GrayIcon"];
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    NSInteger intInputMethod = [defaults integerForKey:@"InputMethod"];
+    NSInteger grayIcon = [defaults integerForKey:@"GrayIcon"];
     [menuChinese setState:vChineseMode ? NSControlStateValueOn : NSControlStateValueOff];
     if (vChineseMode) {
         [menuInputMethod setState:NSControlStateValueOff];
@@ -425,44 +434,19 @@ static NSImage *OKChineseStatusImage(BOOL highlighted, BOOL monochrome) {
     }
     vLanguage = (int)intInputMethod;
     
-    NSInteger intInputType = [[NSUserDefaults standardUserDefaults] integerForKey:@"InputType"];
-    [mnuTelex setState:NSControlStateValueOff];
-    [mnuVNI setState:NSControlStateValueOff];
-    [mnuSimpleTelex1 setState:NSControlStateValueOff];
-    [mnuSimpleTelex2 setState:NSControlStateValueOff];
-    if (intInputType == 0) {
-        [mnuTelex setState:NSControlStateValueOn];
-    } else if (intInputType == 1) {
-        [mnuVNI setState:NSControlStateValueOn];
-    } else if (intInputType == 2) {
-        [mnuSimpleTelex1 setState:NSControlStateValueOn];
-    } else if (intInputType == 3) {
-        [mnuSimpleTelex2 setState:NSControlStateValueOn];
-    }
+    // Menu item tags are the stored input type and code table indexes; the
+    // menus do not exist yet while Accessibility permission is pending.
+    NSInteger intInputType = [defaults integerForKey:@"InputType"];
+    if (mnuTelex) OKSelectMenuItemWithTag(@[mnuTelex, mnuVNI, mnuSimpleTelex1, mnuSimpleTelex2], intInputType);
     vInputType = (int)intInputType;
     
-    NSInteger intSwitchKeyStatus = [[NSUserDefaults standardUserDefaults] integerForKey:@"SwitchKeyStatus"];
+    NSInteger intSwitchKeyStatus = [defaults integerForKey:@"SwitchKeyStatus"];
     vSwitchKeyStatus = (int)intSwitchKeyStatus;
     if (vSwitchKeyStatus == 0)
         vSwitchKeyStatus = DEFAULT_SWITCH_STATUS;
     
-    NSInteger intCode = [[NSUserDefaults standardUserDefaults] integerForKey:@"CodeTable"];
-    [mnuUnicode setState:NSControlStateValueOff];
-    [mnuTCVN setState:NSControlStateValueOff];
-    [mnuVNIWindows setState:NSControlStateValueOff];
-    [mnuUnicodeComposite setState:NSControlStateValueOff];
-    [mnuVietnameseLocaleCP1258 setState:NSControlStateValueOff];
-    if (intCode == 0) {
-        [mnuUnicode setState:NSControlStateValueOn];
-    } else if (intCode == 1) {
-        [mnuTCVN setState:NSControlStateValueOn];
-    } else if (intCode == 2) {
-        [mnuVNIWindows setState:NSControlStateValueOn];
-    } else if (intCode == 3) {
-        [mnuUnicodeComposite setState:NSControlStateValueOn];
-    } else if (intCode == 4) {
-        [mnuVietnameseLocaleCP1258 setState:NSControlStateValueOn];
-    }
+    NSInteger intCode = [defaults integerForKey:@"CodeTable"];
+    if (mnuUnicode) OKSelectMenuItemWithTag(@[mnuUnicode, mnuTCVN, mnuVNIWindows, mnuUnicodeComposite, mnuVietnameseLocaleCP1258], intCode);
     vCodeTable = (int)intCode;
     
 }
