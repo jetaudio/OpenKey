@@ -16,6 +16,7 @@
 #import "ViewController.h"
 #import "OpenKeyManager.h"
 #import "MJAccessibilityUtils.h"
+#import "OKRime.h"
 
 AppDelegate* appDelegate;
 extern ViewController* viewController;
@@ -23,6 +24,8 @@ extern void OnTableCodeChange(void);
 extern void OnInputMethodChanged(void);
 extern void RequestNewSession(void);
 extern void OnActiveAppChanged(void);
+extern void ChineseModeReset(void);
+extern int vChineseMode;
 
 //see document in Engine.h
 int vLanguage = 1;
@@ -64,6 +67,22 @@ extern bool convertToolDontAlertWhenCompleted;
 
 @end
 
+// Menu bar icon for Chinese mode, drawn like the V and E images.
+static NSImage *OKChineseStatusImage(BOOL highlighted, BOOL monochrome) {
+    NSImage *image = [NSImage imageWithSize:NSMakeSize(18, 18) flipped:NO drawingHandler:^BOOL(NSRect rect) {
+        NSColor *color = monochrome ? [NSColor blackColor] : (highlighted ? [NSColor whiteColor] : [NSColor systemRedColor]);
+        NSAttributedString *text = [[NSAttributedString alloc] initWithString:@"中" attributes:@{
+            NSFontAttributeName: [NSFont systemFontOfSize:14 weight:NSFontWeightSemibold],
+            NSForegroundColorAttributeName: color,
+        }];
+        NSSize size = text.size;
+        [text drawAtPoint:NSMakePoint(floor((NSWidth(rect) - size.width) / 2), floor((NSHeight(rect) - size.height) / 2))];
+        return YES;
+    }];
+    image.template = monochrome;
+    return image;
+}
+
 
 @implementation AppDelegate {
     NSWindowController *_mainWC;
@@ -75,6 +94,7 @@ extern bool convertToolDontAlertWhenCompleted;
     NSMenu *theMenu;
     
     NSMenuItem* menuInputMethod;
+    NSMenuItem* menuChinese;
     
     NSMenuItem* mnuTelex;
     NSMenuItem* mnuVNI;
@@ -158,6 +178,7 @@ extern bool convertToolDontAlertWhenCompleted;
     if (vSwitchKeyStatus & 0x8000)
         NSBeep();
 
+    vChineseMode = (int)[[NSUserDefaults standardUserDefaults] integerForKey:@"ChineseMode"];
     [self createStatusBarMenu];
     
     //init
@@ -171,6 +192,8 @@ extern bool convertToolDontAlertWhenCompleted;
             }
         }
         [self setQuickConvertString];
+        // Chinese input loads in the background; until then 中 types Latin.
+        [[OKRime shared] startWithCompletion:nil];
     });
     
     //load default config if is first launch
@@ -210,6 +233,9 @@ extern bool convertToolDontAlertWhenCompleted;
     menuInputMethod = [theMenu addItemWithTitle:@"Bật Tiếng Việt"
                                                      action:@selector(onInputMethodSelected)
                                               keyEquivalent:@""];
+    menuChinese = [theMenu addItemWithTitle:@"Gõ tiếng Trung (Pinyin)"
+                                     action:@selector(onChineseSelected)
+                              keyEquivalent:@""];
     [theMenu addItem:[NSMenuItem separatorItem]];
     NSMenuItem* menuInputType = [theMenu addItemWithTitle:@"Kiểu gõ" action:nil keyEquivalent:@""];
     
@@ -286,6 +312,8 @@ extern bool convertToolDontAlertWhenCompleted;
 }
 
 -(void)loadDefaultConfig {
+    vChineseMode = 0; [[NSUserDefaults standardUserDefaults] setInteger:vChineseMode forKey:@"ChineseMode"];
+    ChineseModeReset();
     vLanguage = 1; [[NSUserDefaults standardUserDefaults] setInteger:vLanguage forKey:@"InputMethod"];
     vInputType = 0; [[NSUserDefaults standardUserDefaults] setInteger:vInputType forKey:@"InputType"];
     vFreeMark = 0; [[NSUserDefaults standardUserDefaults] setInteger:vFreeMark forKey:@"FreeMark"];
@@ -379,7 +407,12 @@ extern bool convertToolDontAlertWhenCompleted;
     //fill data
     NSInteger intInputMethod = [[NSUserDefaults standardUserDefaults] integerForKey:@"InputMethod"];
     NSInteger grayIcon = [[NSUserDefaults standardUserDefaults] integerForKey:@"GrayIcon"];
-    if (intInputMethod == 1) {
+    [menuChinese setState:vChineseMode ? NSControlStateValueOn : NSControlStateValueOff];
+    if (vChineseMode) {
+        [menuInputMethod setState:NSControlStateValueOff];
+        statusItem.button.image = OKChineseStatusImage(NO, grayIcon ? YES : NO);
+        statusItem.button.alternateImage = OKChineseStatusImage(YES, grayIcon ? YES : NO);
+    } else if (intInputMethod == 1) {
         [menuInputMethod setState:NSControlStateValueOn];
         statusItem.button.image = [NSImage imageNamed:@"Status"];
         [statusItem.button.image setTemplate:(grayIcon ? YES : NO)];
@@ -435,7 +468,27 @@ extern bool convertToolDontAlertWhenCompleted;
 }
 
 -(void)onImputMethodChanged:(BOOL)willNotify {
+    if (vChineseMode) {
+        [self selectInputMode:1];
+        return;
+    }
     [self setInputMethod:(vLanguage == 0 ? 1 : 0) willNotify:willNotify];
+}
+
+-(int)currentInputMode {
+    return vChineseMode ? 2 : vLanguage;
+}
+
+-(void)selectInputMode:(int)mode {
+    BOOL chinese = mode == 2;
+    if (chinese != (vChineseMode != 0)) {
+        vChineseMode = chinese ? 1 : 0;
+        [[NSUserDefaults standardUserDefaults] setInteger:vChineseMode forKey:@"ChineseMode"];
+        ChineseModeReset();
+        if (chinese) [[OKRime shared] startWithCompletion:nil];
+    }
+    // The Vietnamese engine stays in English while Chinese input is active.
+    [self setInputMethod:(chinese ? 0 : mode) willNotify:YES];
 }
 
 -(void)setInputMethod:(int)targetLanguage willNotify:(BOOL)willNotify {
@@ -452,6 +505,10 @@ extern bool convertToolDontAlertWhenCompleted;
 #pragma mark -StatusBar menu action
 - (void)onInputMethodSelected {
     [self onImputMethodChanged:YES];
+}
+
+- (void)onChineseSelected {
+    [self selectInputMode:(vChineseMode ? 1 : 2)];
 }
 
 - (void)onInputTypeSelected:(id)sender {

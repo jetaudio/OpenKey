@@ -18,6 +18,10 @@
 -(void)onImputMethodChanged:(BOOL)willNotify;
 -(void)onInputMethodSelected;
 
+// Input modes: 0 = English, 1 = Vietnamese, 2 = Chinese (Pinyin).
+-(int)currentInputMode;
+-(void)selectInputMode:(int)mode;
+
 -(void)askPermission;
 
 -(void)onInputTypeSelectedIndex:(int)index;

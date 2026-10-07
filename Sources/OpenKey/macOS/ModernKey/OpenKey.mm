@@ -11,6 +11,8 @@
 #import "Engine.h"
 #import "AppDelegate.h"
 #import "ViewController.h"
+#import "OKRime.h"
+#import "OKCandidatePanel.h"
 
 #define FRONT_APP [[NSWorkspace sharedWorkspace] frontmostApplication].bundleIdentifier
 #define OTHER_CONTROL_KEY (_flag & kCGEventFlagMaskCommand) || (_flag & kCGEventFlagMaskControl) || \
@@ -82,6 +84,8 @@ extern "C" {
     vector<Byte> savedSmartSwitchKeyData; ////use for smart switch key
     
     NSString* _frontMostApp = @"UnknownApp";
+
+    int vChineseMode = 0; // 1 while 中 (Pinyin through Rime) is the input mode
     
     void OpenKeyInit() {
         //load saved data
@@ -110,6 +114,7 @@ extern "C" {
         LOAD_DATA(vFixChromiumBrowser, vFixChromiumBrowser);
         
         LOAD_DATA(vPerformLayoutCompat, vPerformLayoutCompat);
+        LOAD_DATA(vChineseMode, ChineseMode);
         
         if (myEventSource != NULL) CFRelease(myEventSource);
         myEventSource = CGEventSourceCreate(kCGEventSourceStatePrivate);
@@ -227,7 +232,17 @@ extern "C" {
         [prefs setObject:_data forKey:@"smartSwitchKey"];
     }
     
+    // Drops any unfinished Pinyin composition and its candidate window.
+    void ChineseModeReset() {
+        [[OKRime shared] clearComposition];
+        [[OKCandidatePanel shared] hide];
+    }
+
     void OnActiveAppChanged() { //use for smart switch key; improved on Sep 28th, 2019
+        if (vChineseMode) { // 中 stays on across apps; per-app memory is for V/E
+            ChineseModeReset();
+            return;
+        }
         queryFrontMostApp();
         if (_frontMostApp.length == 0 || [_frontMostApp isEqualToString:OPENKEY_BUNDLE]) return;
         _languageTemp = getAppInputMethodStatus(string(_frontMostApp.UTF8String), vLanguage | (vCodeTable << 1));
@@ -501,6 +516,62 @@ extern "C" {
         }
     }
 
+    // Types text as Unicode key events, in chunks that keep surrogate pairs
+    // whole. Inside the tap callback events go through its proxy.
+    void SendUnicodeText(NSString *text, bool fromTap) {
+        vector<UniChar> characters(text.length);
+        [text getCharacters:characters.data() range:NSMakeRange(0, text.length)];
+        for (size_t begin = 0; begin < characters.size();) {
+            size_t length = std::min((size_t)16, characters.size() - begin);
+            if (begin + length < characters.size() && CFStringIsSurrogateHighCharacter(characters[begin + length - 1])) --length;
+            CGEventRef down = CGEventCreateKeyboardEvent(myEventSource, 0, true);
+            CGEventRef up = CGEventCreateKeyboardEvent(myEventSource, 0, false);
+            if (down != NULL && up != NULL) {
+                CGEventKeyboardSetUnicodeString(down, length, characters.data() + begin);
+                CGEventKeyboardSetUnicodeString(up, length, characters.data() + begin);
+                if (fromTap) {
+                    CGEventTapPostEvent(_proxy, down);
+                    CGEventTapPostEvent(_proxy, up);
+                } else {
+                    CGEventPost(kCGSessionEventTap, down);
+                    CGEventPost(kCGSessionEventTap, up);
+                }
+            }
+            if (down != NULL) CFRelease(down);
+            if (up != NULL) CFRelease(up);
+            begin += length;
+        }
+    }
+
+    void ChineseCandidateClicked(NSInteger index) {
+        OKRime *rime = [OKRime shared];
+        if ([rime selectCandidateOnCurrentPage:index]) {
+            NSString *commit = [rime takeCommit];
+            if (commit != nil) SendUnicodeText(commit, false);
+        }
+        [[OKCandidatePanel shared] showComposition:[rime composition]];
+    }
+
+    CGEventRef ChineseHandleKeyDown(CGEventRef event) {
+        OKRime *rime = [OKRime shared];
+        if (!rime.ready) return event; // still loading: type Latin
+        static dispatch_once_t once;
+        dispatch_once(&once, ^{
+            [OKCandidatePanel shared].onSelect = ^(NSInteger index) { ChineseCandidateClicked(index); };
+        });
+        OKRimeComposition *before = [rime composition];
+        // Caps Lock types Latin letters, as in the system Pinyin input.
+        if ((_flag & kCGEventFlagMaskAlphaShift) && before == nil) return event;
+        int mask = 0;
+        int keysym = [OKRime keysymForEvent:event keyCode:_keycode flags:_flag mask:&mask];
+        if (keysym == 0) return event;
+        BOOL handled = [rime processKeysym:keysym mask:mask];
+        NSString *commit = [rime takeCommit];
+        if (commit != nil) SendUnicodeText(commit, true);
+        [[OKCandidatePanel shared] showComposition:[rime composition]];
+        return handled ? NULL : event;
+    }
+
     bool checkHotKey(int hotKeyData, bool checkKeyCode=true, CGEventFlags flags=~(CGEventFlags)0) {
         if (flags == ~(CGEventFlags)0) flags = _flag;
         if ((hotKeyData & (~0x8000)) == EMPTY_HOTKEY)
@@ -522,10 +593,12 @@ extern "C" {
         return true;
     }
     
+    // The shortcut cycles V -> E -> 中 -> V.
     void switchLanguage() {
         if (HAS_BEEP(vSwitchKeyStatus))
             NSBeep();
-        [appDelegate setInputMethod:(vLanguage == 0 ? 1 : 0) willNotify:YES];
+        int mode = [appDelegate currentInputMode];
+        [appDelegate selectInputMode:(mode == 1 ? 0 : (mode == 0 ? 2 : 1))];
         startNewSession();
     }
     
@@ -661,6 +734,16 @@ extern "C" {
             return event;
         
         _proxy = proxy;
+        
+        //Chinese mode: keys go to Rime; a click elsewhere ends the composition
+        if (vChineseMode) {
+            if (type == kCGEventLeftMouseDown || type == kCGEventRightMouseDown) {
+                if (![[OKCandidatePanel shared] containsScreenPoint:[NSEvent mouseLocation]])
+                    ChineseModeReset();
+                return event;
+            }
+            return type == kCGEventKeyDown ? ChineseHandleKeyDown(event) : event;
+        }
         
         //If is in english mode
         if (vLanguage == 0) {

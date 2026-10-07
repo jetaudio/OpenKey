@@ -21,7 +21,7 @@ xcodebuild \
   -destination 'generic/platform=macOS' \
   'ARCHS=arm64 x86_64' \
   ONLY_ACTIVE_ARCH=NO \
-  MACOSX_DEPLOYMENT_TARGET=10.14 \
+  MACOSX_DEPLOYMENT_TARGET=12.0 \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
   CODE_SIGN_IDENTITY= \
@@ -31,7 +31,11 @@ xcodebuild \
 
 app_path="$build_dir/DerivedData/Build/Products/Release/OpenKey.app"
 test -d "$app_path/Contents/Resources/Base.lproj/Main.storyboardc"
-lipo "$app_path/Contents/MacOS/OpenKey" -verify_arch arm64 x86_64
+test -f "$app_path/Contents/Frameworks/librime.1.dylib"
+test -f "$app_path/Contents/Resources/Rime/build/pinyin_simp.table.bin"
+for arch in arm64 x86_64; do
+  lipo "$app_path/Contents/MacOS/OpenKey" -verify_arch "$arch"
+done
 codesign --force --sign - "$app_path"
 codesign --verify --deep --strict --verbose=2 "$app_path"
 plutil -lint "$app_path/Contents/Info.plist"

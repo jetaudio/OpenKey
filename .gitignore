@@ -12,3 +12,6 @@
 # Local macOS build artifacts
 .DS_Store
 /dist/
+
+# Downloaded by scripts/fetch-rime.sh
+/Sources/OpenKey/macOS/ThirdParty/

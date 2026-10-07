@@ -39,6 +39,8 @@
 		23963B5022040C720097189E /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 23963B4F22040C720097189E /* ServiceManagement.framework */; };
 		23CA6D1722F0439100804D6E /* MyTextField.m in Sources */ = {isa = PBXBuildFile; fileRef = 23CA6D1622F0439100804D6E /* MyTextField.m */; };
 		A1F0E0A02F00000000000001 /* OKFormUI.m in Sources */ = {isa = PBXBuildFile; fileRef = A1F0E0A02F00000000000003 /* OKFormUI.m */; };
+		A1F0E0A02F00000000000004 /* OKRime.mm in Sources */ = {isa = PBXBuildFile; fileRef = A1F0E0A02F00000000000006 /* OKRime.mm */; };
+		A1F0E0A02F00000000000007 /* OKCandidatePanel.m in Sources */ = {isa = PBXBuildFile; fileRef = A1F0E0A02F00000000000009 /* OKCandidatePanel.m */; };
 		23E2E49D2314FD3A006CCC3E /* Macro.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 23E2E4952314FD3A006CCC3E /* Macro.cpp */; };
 		23E2E49E2314FD3A006CCC3E /* SmartSwitchKey.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 23E2E4982314FD3A006CCC3E /* SmartSwitchKey.cpp */; };
 		23E2E49F2314FD3A006CCC3E /* Engine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 23E2E49A2314FD3A006CCC3E /* Engine.cpp */; };
@@ -126,6 +128,10 @@
 		23CA6D1622F0439100804D6E /* MyTextField.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MyTextField.m; sourceTree = "<group>"; };
 		A1F0E0A02F00000000000002 /* OKFormUI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OKFormUI.h; sourceTree = "<group>"; };
 		A1F0E0A02F00000000000003 /* OKFormUI.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = OKFormUI.m; sourceTree = "<group>"; };
+		A1F0E0A02F00000000000005 /* OKRime.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OKRime.h; sourceTree = "<group>"; };
+		A1F0E0A02F00000000000006 /* OKRime.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = OKRime.mm; sourceTree = "<group>"; };
+		A1F0E0A02F00000000000008 /* OKCandidatePanel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OKCandidatePanel.h; sourceTree = "<group>"; };
+		A1F0E0A02F00000000000009 /* OKCandidatePanel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = OKCandidatePanel.m; sourceTree = "<group>"; };
 		23E2E4942314FD3A006CCC3E /* Engine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Engine.h; sourceTree = "<group>"; };
 		23E2E4952314FD3A006CCC3E /* Macro.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Macro.cpp; sourceTree = "<group>"; };
 		23E2E4962314FD3A006CCC3E /* DataType.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DataType.h; sourceTree = "<group>"; };
@@ -222,6 +228,10 @@
 				23CA6D1622F0439100804D6E /* MyTextField.m */,
 				A1F0E0A02F00000000000002 /* OKFormUI.h */,
 				A1F0E0A02F00000000000003 /* OKFormUI.m */,
+				A1F0E0A02F00000000000005 /* OKRime.h */,
+				A1F0E0A02F00000000000006 /* OKRime.mm */,
+				A1F0E0A02F00000000000008 /* OKCandidatePanel.h */,
+				A1F0E0A02F00000000000009 /* OKCandidatePanel.m */,
 				2345899822F720D7003E0923 /* MacroViewController.h */,
 				2345899922F720D7003E0923 /* MacroViewController.mm */,
 				23136D90231FBD49000764E6 /* ConvertToolViewController.h */,
@@ -331,6 +341,7 @@
 				232EDA5021F1B33E0085D362 /* Sources */,
 				232EDA5121F1B33E0085D362 /* Frameworks */,
 				232EDA5221F1B33E0085D362 /* Resources */,
+				A1F0E0A02F0000000000000A /* Embed Rime */,
 				237559C4220417DD00FB8CB9 /* CopyFiles */,
 			);
 			buildRules = (
@@ -404,6 +415,25 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		A1F0E0A02F0000000000000A /* Embed Rime */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Embed Rime";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "set -euo pipefail\nbash \"${SRCROOT}/../../../scripts/fetch-rime.sh\"\nrime=\"${SRCROOT}/ThirdParty/Rime\"\nframeworks=\"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}\"\nresources=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/Rime\"\nmkdir -p \"$frameworks\"\nrm -rf \"$resources\"\nmkdir -p \"$resources\"\nditto \"$rime/lib/librime.1.dylib\" \"$frameworks/librime.1.dylib\"\nfor part in shared build licenses; do ditto \"$rime/$part\" \"$resources/$part\"; done\ncodesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY:--}\" --timestamp=none \"$frameworks/librime.1.dylib\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		232EDA5021F1B33E0085D362 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -418,6 +448,8 @@
 				2374A1302216720E005B0375 /* AboutViewController.m in Sources */,
 				23CA6D1722F0439100804D6E /* MyTextField.m in Sources */,
 				A1F0E0A02F00000000000001 /* OKFormUI.m in Sources */,
+				A1F0E0A02F00000000000004 /* OKRime.mm in Sources */,
+				A1F0E0A02F00000000000007 /* OKCandidatePanel.m in Sources */,
 				232EDA6421F1B33F0085D362 /* main.m in Sources */,
 				2345899A22F720D7003E0923 /* MacroViewController.mm in Sources */,
 				2371AAEF22FA85B200CA1B57 /* OpenKey.mm in Sources */,
@@ -510,7 +542,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -564,7 +596,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
@@ -581,12 +613,13 @@
 				CURRENT_PROJECT_VERSION = 48;
 				DEVELOPMENT_TEAM = 8S7348QV8Q;
 				HEADER_SEARCH_PATHS = "";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = ModernKey/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				MARKETING_VERSION = 2.0.4;
 				OTHER_LDFLAGS = (
 					"-lc++\n-lc++",
@@ -607,12 +640,13 @@
 				CURRENT_PROJECT_VERSION = 48;
 				DEVELOPMENT_TEAM = 8S7348QV8Q;
 				HEADER_SEARCH_PATHS = "";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = ModernKey/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.10;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
 				MARKETING_VERSION = 2.0.4;
 				OTHER_LDFLAGS = (
 					"-lc++\n-lc++",

@@ -12,11 +12,14 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer bash scripts/build-maco
 
 Kết quả nằm trong `dist/`. Bản tự build dùng chữ ký ad hoc, chưa notarize bằng tài khoản Apple Developer. Việc build và kiểm tra DMG không thay thế kiểm thử gõ tiếng Việt và cấp quyền Accessibility trên máy sử dụng.
 
+Chế độ gõ tiếng Trung (中, Pinyin giản thể) dùng [librime](https://github.com/rime/librime) cùng dữ liệu `rime-prelude`, `rime-essay` và `rime-pinyin-simp`. Lần build đầu tiên cần mạng: bước "Embed Rime" của Xcode gọi `scripts/fetch-rime.sh` để tải đúng phiên bản đã ghim, kiểm tra SHA-256, biên dịch sẵn từ điển vào `Sources/OpenKey/macOS/ThirdParty/Rime` (không đưa vào git) rồi nhúng vào `OpenKey.app`. Giấy phép của các thành phần này nằm trong `OpenKey.app/Contents/Resources/Rime/licenses`.
+
 Các kiểm thử hồi quy có thể chạy bằng Command Line Tools:
 
 ```bash
 bash scripts/test-engine.sh
 bash scripts/test-macos-events.sh
+bash scripts/test-rime.sh
 ```
 
 Để kiểm tra outlet, bố cục và thao tác Fn trên storyboard đã compile (máy cần có phiên đăng nhập đồ họa):
@@ -30,8 +33,8 @@ Lệnh UI QA dùng executable riêng và thay việc khởi tạo event tap bằ
 Vì một số lý do mà OpenKey không thể đưa lêp Mac App Store được, nếu các bạn không yên tâm về file build chính thức từ tác giả, các bạn có thể tải mã nguồn về tự build lấy OpenKey cho mình. 
 
 Yêu cầu:
-- macOS Mojave trở lên.
-- XCode 10 trở lên.
+- macOS 12 Monterey trở lên.
+- Xcode 14 trở lên (đã kiểm tra với Xcode 27).
 
 Tải mã nguồn từ dự án OpenKey trên GitHub về, mở dự án OpenKey bằng cách vào:
 <img width="808" alt="Screen Shot 2022-06-01 at 13 34 39" src="https://user-images.githubusercontent.com/7700801/171342552-46c391a7-9160-4677-bb8a-9d8cececcfe6.png">

@@ -120,12 +120,13 @@ static const CGFloat kSettingsMaxHeight = 640;
 - (NSScrollView *)buildGeneralPage {
     NSStackView *stack = [form pageStack];
 
-    languageControl = [NSSegmentedControl segmentedControlWithLabels:@[@"Tiếng Việt", @"English"]
+    languageControl = [NSSegmentedControl segmentedControlWithLabels:@[@"Tiếng Việt", @"English", @"中文"]
                                                         trackingMode:NSSegmentSwitchTrackingSelectOne
                                                               target:self
                                                               action:@selector(onLanguageSegment:)];
     [languageControl setToolTip:@"Chế độ gõ Tiếng Việt" forSegment:0];
     [languageControl setToolTip:@"Chế độ gõ Tiếng Anh" forSegment:1];
+    [languageControl setToolTip:@"Gõ tiếng Trung bằng Pinyin" forSegment:2];
     [form prepareInlinePopup:self.popupInputType];
     [form prepareInlinePopup:self.popupCode];
     [form addSection:nil rows:@[
@@ -144,7 +145,7 @@ static const CGFloat kSettingsMaxHeight = 640;
     shortcut.spacing = 8;
 
     [form addSection:@"Phím chuyển chế độ" rows:@[
-        [form rowWithTitle:@"Phím tắt" detail:nil accessory:shortcut],
+        [form rowWithTitle:@"Phím tắt" detail:@"Xoay vòng Tiếng Việt → English → 中文" accessory:shortcut],
         [form toggleRowForButton:CustomBeepSound title:@"Kêu beep khi chuyển chế độ"
                           detail:@"Không áp dụng với chuyển chế độ thông minh"],
     ] note:@"Để dùng phím 🌐, vào Cài đặt Hệ thống → Bàn phím và đặt “Nhấn phím 🌐” thành “Không làm gì”." toStack:stack];
@@ -399,9 +400,10 @@ static const CGFloat kSettingsMaxHeight = 640;
 }
 
 - (void)onLanguageSegment:(NSSegmentedControl *)sender {
-    NSInteger current = [[NSUserDefaults standardUserDefaults] integerForKey:@"InputMethod"] == 1 ? 0 : 1;
-    if (sender.selectedSegment != current) {
-        [appDelegate onInputMethodSelected];
+    int modes[] = {1, 0, 2};
+    int mode = modes[MIN(MAX(sender.selectedSegment, 0), 2)];
+    if (mode != [appDelegate currentInputMode]) {
+        [appDelegate selectInputMode:mode];
     }
 }
 
@@ -642,8 +644,9 @@ static const CGFloat kSettingsMaxHeight = 640;
 -(void)fillData {
     NSInteger value;
     
-    NSInteger intInputMethod = [[NSUserDefaults standardUserDefaults] integerForKey:@"InputMethod"];
-    languageControl.selectedSegment = intInputMethod == 1 ? 0 : 1;
+    // Segments: Tiếng Việt, English, 中文; modes: 1, 0, 2.
+    int mode = [appDelegate currentInputMode];
+    languageControl.selectedSegment = mode == 1 ? 0 : (mode == 0 ? 1 : 2);
     
     NSInteger intInputType = [[NSUserDefaults standardUserDefaults] integerForKey:@"InputType"];
     [self.popupInputType selectItemAtIndex:intInputType];
