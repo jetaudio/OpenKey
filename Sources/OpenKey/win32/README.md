@@ -1,7 +1,7 @@
 # OpenKey for Windows
 [![MSBuild](https://github.com/jetaudio/OpenKey/actions/workflows/msbuild.yml/badge.svg)](https://github.com/jetaudio/OpenKey/actions/workflows/msbuild.yml)
 
-> **Bản fork jetaudio:** bổ sung Simple Telex 2 trong bảng điều khiển và menu, tự cài lại hook bàn phím khi mở khóa máy, sửa lỗi tràn bộ đệm khi dán qua clipboard, và có CI build x86/x64. Bản build lấy từ artifact **OpenKey** của workflow [MSBuild](https://github.com/jetaudio/OpenKey/actions/workflows/msbuild.yml). Xem [README](../../../README.vi.md) và [CHANGELOG](../../../CHANGELOG.md).
+> **Bản fork jetaudio:** bổ sung Simple Telex 2 trong bảng điều khiển và menu, tự cài lại hook bàn phím khi mở khóa máy, sửa lỗi tràn bộ đệm khi dán qua clipboard, và có CI build x86/x64. Bản build lấy từ artifact **OpenKey** của workflow [MSBuild](https://github.com/jetaudio/OpenKey/actions/workflows/msbuild.yml). Xem [README](../../../README.md) và [CHANGELOG](../../../CHANGELOG.md).
 - OpenKey phiên bản cho Windows bắt đầu từ bản 1.5, có tất cả các tính năng của bản macOS.  
 - OpenKey mặc định chạy ở chế độ `Administrator` để có thể dễ dàng gõ Tiếng Việt trong **game**. Mã nguồn đã được phát hành công khai dưới giấy phép **GPL** nên các bạn hoàn toàn yên tâm về tính minh bạch của chương trình, không keylog, không backdoor,...
 - OpenKey for Windows hỗ trợ từ Windows Vista trở lên, Windows XP thì chưa có cơ hội để test, Windows 2000 trở về trước thì chắc chắn không thể hỗ trợ rồi.

@@ -80,9 +80,27 @@ The outputs are `OpenKey32.exe` or `OpenKey64.exe`, plus `OpenKeyUpdate.exe`, in
 | `scripts/test-engine.sh` | Typing engine (tone placement in both orthographies), code-table conversion, smart-switch preferences. Runs under ASan/UBSan. | Command Line Tools |
 | `scripts/test-macos-events.sh` | Event tap callback, key sending, Spotlight, Fn shortcuts, Chinese mode and tap lifecycle. All system calls are mocked. | Command Line Tools |
 | `scripts/test-rime.sh` | Pinyin input, candidates, learning and forgetting phrases through librime. | Command Line Tools, network on first run |
-| `scripts/test-macos-ui.sh <app> <png>` | Compiled storyboard outlets, layout geometry and the Fn action. Renders the preferences window to a PNG. | A built app and a GUI session |
+| `scripts/test-macos-ui.sh <app> <png>` | Compiled storyboard outlets, layout geometry and the Fn action. Renders the preferences window to a PNG. Set `OPENKEY_UI_APPEARANCE=dark` to render the dark appearance. | A built app and a GUI session |
 
 On Windows, CI also compiles `tests/engine_regression.cpp` with MSVC (`cl /std:c++14 /utf-8`) and runs it with Windows key codes.
+
+## Publishing a release
+
+The in-app updaters depend on the following layout. Keep it the same for every release.
+
+1. Raise the version:
+   - macOS: `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in the Xcode project
+   - Windows: `FILEVERSION`/`PRODUCTVERSION` in `OpenKey.rc`
+2. Update `version.json` on `master`:
+   - `latestVersion.versionCode` is the macOS build number (`CFBundleVersion`).
+   - `latestWinVersion.versionCode` is `major | minor << 8 | patch << 16`. For example, 2.0.6 is `393218`.
+3. Tag the release `v<version>`, for example `v2.0.6`.
+4. Attach these assets:
+   - `OpenKey-<version>-macOS-universal.dmg`
+   - `OpenKey-<version>-Windows.zip`, with `OpenKey32.exe`, `OpenKey64.exe` and `OpenKeyUpdate.exe` at the root of the zip
+   - `SHA256SUMS.txt`
+
+The Windows updater downloads `releases/download/v<version>/OpenKey-<version>-Windows.zip` and extracts `OpenKey64.exe` from the root of the zip. The macOS app opens the latest release page.
 
 ## Continuous integration
 

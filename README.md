@@ -1,204 +1,148 @@
-# OpenKey (jetaudio fork)
+# OpenKey (bản fork của jetaudio)
 
 [![Build macOS DMG](https://github.com/jetaudio/OpenKey/actions/workflows/macos-dmg.yml/badge.svg)](https://github.com/jetaudio/OpenKey/actions/workflows/macos-dmg.yml)
 [![MSBuild](https://github.com/jetaudio/OpenKey/actions/workflows/msbuild.yml/badge.svg)](https://github.com/jetaudio/OpenKey/actions/workflows/msbuild.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/jetaudio/OpenKey)](https://github.com/jetaudio/OpenKey/releases/latest)
-![Platforms](https://img.shields.io/badge/platforms-macOS%2012%2B%20%7C%20Windows-lightgrey)
 
-**An open-source Vietnamese input method for macOS and Windows, with Chinese Pinyin input on macOS.**
+**Bộ gõ tiếng Việt nguồn mở cho macOS và Windows. Trên macOS có thêm chế độ gõ tiếng Trung bằng Pinyin.**
 
-This repository is a maintained fork of [OpenKey](https://github.com/tuyenvm/OpenKey) by Mai Vũ Tuyên.
-It builds on upstream `master` at [`89c2fd3`](https://github.com/tuyenvm/OpenKey/commit/89c2fd3bf258562f2349f89b49d81e2f140c3fc3).
-It adds a Chinese input mode, a redesigned macOS interface, fixes taken from open upstream pull requests, regression tests and CI builds.
+Đây là bản fork được duy trì của [OpenKey](https://github.com/tuyenvm/OpenKey) do Mai Vũ Tuyên phát triển.
+Fork dựa trên `master` của bản gốc tại commit [`89c2fd3`](https://github.com/tuyenvm/OpenKey/commit/89c2fd3bf258562f2349f89b49d81e2f140c3fc3).
+Fork bổ sung chế độ gõ tiếng Trung, giao diện macOS mới, các bản sửa lỗi lấy từ những pull request còn mở ở repo gốc, cùng bộ kiểm thử hồi quy và CI build tự động.
 
-[Tiếng Việt](README.vi.md) · [Changelog](CHANGELOG.md) · [Building](BUILDING.md) · [Upstream PR review](PR_REVIEW.md)
+[English](README.en.md) · [Lịch sử thay đổi](CHANGELOG.md) · [Hướng dẫn build](BUILDING.md) · [Review PR gốc](PR_REVIEW.md)
 
-![OpenKey preferences on macOS](docs/images/preferences.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/preferences-dark.png">
+  <img alt="Bảng điều khiển OpenKey trên macOS" src="docs/images/preferences-light.png">
+</picture>
 
----
+## Fork này có thêm gì so với OpenKey gốc
 
-## Table of contents
+### Tính năng mới
 
-- [What this fork adds](#what-this-fork-adds)
-- [Features](#features)
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Building from source](#building-from-source)
-- [Testing](#testing)
-- [Project structure](#project-structure)
-- [Known limitations](#known-limitations)
-- [Contributing](#contributing)
-- [License](#license)
-- [Acknowledgements](#acknowledgements)
+- **Gõ tiếng Trung (macOS):** thêm chế độ thứ ba, **中**, để gõ Pinyin giản thể.
+  - Dùng [librime](https://github.com/rime/librime) với bộ `pinyin_simp` chính thức.
+  - Bảng ứng viên hiện ngay cạnh con trỏ.
+  - Bộ gõ tự học cụm từ. **Shift+Delete** hoặc **Control+K** xóa một cụm đã học.
+  - Phím tắt chuyển chế độ xoay vòng **Tiếng Việt → English → 中**.
+- **Giao diện macOS mới:** bảng điều khiển, gõ tắt, chuyển mã và giới thiệu được thiết kế lại theo phong cách Cài đặt của macOS 26 (Tahoe).
+- **Phím 🌐/Fn (macOS):** dùng được phím Fn riêng lẻ hoặc kết hợp với phím khác để chuyển chế độ.
+- **Simple Telex 2 trên Windows:** có trong bảng điều khiển và menu khay hệ thống.
 
-## What this fork adds
+### Sửa lỗi độ ổn định
 
-Changes compared with upstream `tuyenvm/OpenKey` at `89c2fd3`. See [CHANGELOG.md](CHANGELOG.md) for the full list.
+Các bản sửa này được tích hợp từ 8 PR còn mở ở repo gốc: #287, #289, #297, #317, #324, #329, #332 và #333. Mỗi PR đều được review, viết lại một phần và có kiểm thử. Chi tiết nằm trong [PR_REVIEW.md](PR_REVIEW.md).
 
-### New features
+- **Event tap (macOS):** tự bật lại khi macOS tắt nó do timeout, có watchdog 0,5 giây.
+- **Gửi phím (macOS):** mỗi lần thay chữ tạo cặp sự kiện Backspace mới, và chuỗi dài được gửi theo từng khối UTF-16 trọn vẹn.
+- **Spotlight:** chỉ thay chữ tại chỗ khi ô Spotlight thật sự đang nhận phím.
+- **Khởi động cùng máy:** dùng `SMAppService` trên macOS 13 trở lên.
+- **Ứng dụng lập trình:** Terminal và các ứng dụng tương tự mặc định gõ tiếng Anh, nhưng vẫn giữ lựa chọn và bảng mã người dùng đã lưu.
+- **Windows:** tự cài lại hook bàn phím khi mở khóa máy, và sửa lỗi tràn bộ đệm cùng ký tự thừa khi dán qua clipboard.
+- **Công cụ chuyển mã:** giữ chữ hoa/thường khi bỏ dấu, và vẫn giải mã đúng ký tự một byte của VNI/CP1258.
+- **Chuyển chế độ:** bộ gõ tiếng Việt bắt đầu từ mới mỗi khi vào hoặc ra chế độ tiếng Trung.
 
-| Area | Change |
-| --- | --- |
-| **Chinese input (macOS)** | A third input mode, **中**, for Simplified Chinese Pinyin. It uses [librime](https://github.com/rime/librime) with the official `pinyin_simp` schema. A candidate panel follows the caret, phrases are learned as you type, and **Shift+Delete** or **Control+K** forgets a learned phrase. The mode shortcut cycles **Tiếng Việt → English → 中**. |
-| **macOS interface** | The preferences, macro, convert-tool and About windows are redesigned in the macOS 26 (Tahoe) settings style. They use toolbar tabs, rounded groups, switches, inline pop-ups and a segmented modifier-key control. |
-| **Globe/Fn shortcut (macOS)** | Fn (🌐) can be used alone or with other modifiers to switch input modes. |
-| **Simple Telex 2 (Windows)** | Simple Telex 1 and 2 are available in the Windows settings and tray menu. Previously, the engine supported Simple Telex 2 but Windows did not offer it. |
+### Kỹ thuật
 
-### Reliability fixes
+- **Kiểm thử:** chạy với AddressSanitizer/UndefinedBehaviorSanitizer.
+  - Engine có hơn 3.400 assertion, gồm cả cách đặt dấu kiểu cũ và kiểu mới.
+  - Phía macOS có kiểm thử xử lý sự kiện phím, vòng đời event tap và gõ tiếng Trung.
+- **CI:** GitHub Actions build DMG universal (`arm64` + `x86_64`) và file EXE Windows x86/x64.
+- **Hiệu năng:** giảm khối lượng xử lý cho mỗi lần gõ phím.
 
-These fixes were adapted from eight open upstream pull requests: #287, #289, #297, #317, #324, #329, #332 and #333. Each one was reviewed, partly rewritten and covered by tests. [PR_REVIEW.md](PR_REVIEW.md) records every decision.
+## Tính năng kế thừa từ OpenKey
 
-- **macOS event tap:** re-enabled after macOS disables it on timeout, with a 0.5 s watchdog. Each replacement allocates fresh backspace events. Long strings are sent in complete UTF-16 chunks.
-- **Spotlight:** text is replaced in place only when the Spotlight field really has focus. Hidden or fading windows no longer count, and focus queries time out after 20 ms.
-- **Login items:** `SMAppService` is used on macOS 13 and later.
-- **Developer apps:** apps such as Terminal start in English, but your saved choices and code table are kept.
-- **Windows lock and unlock:** keyboard hooks are restored on `WTS_SESSION_UNLOCK`. If installing a new hook fails, the old hook is kept.
-- **Windows clipboard paste:** a buffer overrun and a stray trailing character in the paste path are fixed.
-- **Convert tool:** letter case is kept when marks are removed, and single-byte VNI and CP1258 characters still decode correctly.
-- **Mode switching:** the Vietnamese engine starts a fresh word when you enter or leave Chinese mode.
+- **Kiểu gõ:** Telex, VNI, Simple Telex 1, Simple Telex 2.
+- **Bảng mã:** Unicode dựng sẵn, TCVN3 (ABC), VNI Windows, Unicode tổ hợp, Vietnamese Locale CP1258.
+- **Cách gõ:**
+  - Bỏ dấu kiểu mới (`oà`, `uý`) hoặc kiểu cũ (`òa`, `úy`).
+  - Kiểm tra chính tả, và tự khôi phục phím khi gõ sai từ.
+  - Gõ nhanh: `cc`=ch, `gg`=gi, `kk`=kh, `nn`=ng, `qq`=qu, `pp`=ph, `tt`=th.
+  - Gõ tắt phụ âm đầu (f→ph, j→gi, w→qu) và phụ âm cuối (g→ng, h→nh, k→ch).
+- **Gõ tắt (macro):** không giới hạn độ dài, nhập và xuất được ra file.
+- **Chuyển chế độ thông minh:** tự nhớ chế độ gõ và bảng mã theo từng ứng dụng.
+- **Tạm tắt:** giữ Ctrl để tạm tắt kiểm tra chính tả, giữ Cmd/Alt để tạm tắt OpenKey.
+- **Viết hoa:** tự viết hoa chữ cái đầu câu.
+- **Công cụ chuyển mã:** chuyển văn bản giữa các bảng mã và đổi chữ hoa/thường, có phím tắt riêng.
+- **Sửa lỗi gợi ý:** sửa lỗi tự hoàn thành trên trình duyệt và Excel.
+- **Ngôn ngữ khác:** tùy chọn tắt tiếng Việt khi bộ gõ hệ thống không phải tiếng Anh.
 
-### Engineering
+## Yêu cầu hệ thống
 
-- **Regression tests:** run under AddressSanitizer and UndefinedBehaviorSanitizer.
-  - The engine suite has 3,400+ assertions, including tone placement in old and modern orthography.
-  - The macOS suites cover event processing, the event tap lifecycle and Chinese input. System calls are mocked, so the tests never send keys or install hooks on the host.
-- **CI:** GitHub Actions builds a universal (`arm64` + `x86_64`) DMG and Windows x86/x64 executables. The Windows workflow verifies each PE machine type and publishes a build-provenance attestation.
-- **Performance:** less work per keystroke. The frontmost app and the input source are looked up once per key, and the engine avoids repeated map lookups and copies.
+- macOS 12 Monterey trở lên (Apple Silicon hoặc Intel).
+- Windows Vista trở lên (x86 hoặc x64).
 
-## Features
+## Cài đặt
 
-Inherited from OpenKey and available on both platforms unless noted:
+**macOS**
 
-- **Input methods:** Telex, VNI, Simple Telex 1, Simple Telex 2.
-- **Code tables:** Unicode (precomposed), TCVN3 (ABC), VNI Windows, Unicode Compound, Vietnamese Locale CP1258.
-- **Typing:** modern (`oà`, `uý`) or old (`òa`, `úy`) tone placement, spell checking, restoring keys when a word is invalid, and Quick Telex (`cc`→`ch`, `gg`→`gi`, `kk`→`kh`, `nn`→`ng`, `qq`→`qu`, `pp`→`ph`, `tt`→`th`).
-- **Shorthand for consonants:** initials (`f`→`ph`, `j`→`gi`, `w`→`qu`) and endings (`g`→`ng`, `h`→`nh`, `k`→`ch`).
-- **Text expansion:** macros with no length limit, which can be imported from and exported to text files.
-- **Smart switching:** remembers the input mode and code table for each application.
-- **Temporary overrides:** Control turns off spell checking and Command/Alt turns off OpenKey while held.
-- **Automatic capitals:** capitalizes the first letter of each sentence.
-- **Convert tool:** converts text between code tables and changes letter case, with a configurable hotkey.
-- **Browser fixes:** works around autocomplete in browsers and Microsoft Excel, with an optional Chromium-specific fix.
-- **Other languages:** optionally turns off Vietnamese while a non-English system input source is active.
+1. Tải `OpenKey-<phiên bản>-macOS-universal.dmg` từ [bản phát hành mới nhất](https://github.com/jetaudio/OpenKey/releases/latest). Bản dựng thử nằm ở artifact **OpenKey-macos-universal** của workflow [Build macOS DMG](https://github.com/jetaudio/OpenKey/actions/workflows/macos-dmg.yml). Bạn cũng có thể [tự build](BUILDING.md).
+2. Mở DMG và kéo **OpenKey.app** vào **Applications**.
+3. Bản build được ký ad hoc và chưa notarize. Lần đầu mở, hãy bấm chuột phải vào app rồi chọn **Open**, hoặc cho phép trong **Cài đặt Hệ thống → Quyền riêng tư & Bảo mật**.
+4. Cấp quyền tại **Cài đặt Hệ thống → Quyền riêng tư & Bảo mật → Trợ năng**. Không tắt quyền này khi đang dùng OpenKey.
 
-## Requirements
+**Windows**
 
-| Platform | Requirement |
-| --- | --- |
-| macOS | macOS 12 Monterey or later, on Apple Silicon or Intel |
-| Windows | Windows Vista or later, x86 or x64 |
-
-## Installation
-
-### macOS
-
-1. Download `OpenKey-<version>-macOS-universal.dmg` from the [latest release](https://github.com/jetaudio/OpenKey/releases/latest). Development builds are available as the **OpenKey-macos-universal** artifact of [Build macOS DMG](https://github.com/jetaudio/OpenKey/actions/workflows/macos-dmg.yml) runs, or you can [build it yourself](#building-from-source).
-2. Open the DMG and drag **OpenKey.app** to **Applications**.
-3. The app has an ad hoc signature and is not notarized. On first launch, right-click it and choose **Open**, or allow it in **System Settings → Privacy & Security**.
-4. Grant Accessibility access in **System Settings → Privacy & Security → Accessibility**. Keep it enabled while OpenKey runs.
+1. Tải `OpenKey-<phiên bản>-Windows.zip` từ [bản phát hành mới nhất](https://github.com/jetaudio/OpenKey/releases/latest), hoặc artifact **OpenKey** của workflow [MSBuild](https://github.com/jetaudio/OpenKey/actions/workflows/msbuild.yml).
+2. Giải nén, rồi chạy `OpenKey64.exe` trên Windows 64-bit hoặc `OpenKey32.exe` trên Windows 32-bit. Riêng bản 2.0.5 để hai file này trong thư mục `x64/` và `x86/`.
+3. Bấm đồng ý khi Windows hỏi quyền quản trị.
 
 > [!IMPORTANT]
-> Turn off other Vietnamese input methods while using OpenKey. Two input methods running together interfere with each other.
+> Hãy tắt các bộ gõ tiếng Việt khác khi dùng OpenKey, vì hai bộ gõ chạy cùng lúc sẽ xung đột với nhau.
 
-### Windows
+## Hướng dẫn nhanh
 
-1. Download `OpenKey-<version>-Windows.zip` from the [latest release](https://github.com/jetaudio/OpenKey/releases/latest), or the **OpenKey** artifact of an [MSBuild](https://github.com/jetaudio/OpenKey/actions/workflows/msbuild.yml) run.
-2. Extract it anywhere and run `x64/OpenKey64.exe` on 64-bit Windows or `x86/OpenKey32.exe` on 32-bit Windows.
-3. Accept the administrator prompt. OpenKey runs elevated so that it can type into games and elevated apps.
+- **Chuyển chế độ:** dùng phím tắt cài trong **Phím chuyển chế độ**, hoặc chọn trên menu bar hay khay hệ thống.
+- **Dùng phím 🌐 trên macOS:** vào **Cài đặt Hệ thống → Bàn phím** và đặt "Nhấn phím 🌐" thành **Không làm gì**.
+- **Chế độ 中:**
+  - Gõ Pinyin.
+  - **Space** chọn ứng viên đầu tiên, phím **1–7** hoặc bấm chuột để chọn ứng viên khác.
+  - **−/=** hoặc **Page Up/Page Down** để lật trang.
+  - **Esc** để hủy.
+  - Bật **Caps Lock** để gõ chữ Latin.
 
-## Usage
+## Build và kiểm thử
 
-- **Switch input mode:** press the shortcut set in **Preferences → Phím chuyển chế độ**, or choose a mode from the menu bar or tray icon. On macOS the shortcut cycles through Vietnamese, English and Chinese.
-- **Use Globe (🌐) as the shortcut on macOS:** in **System Settings → Keyboard**, set *Press 🌐 key to* **Do Nothing**.
-- **Chinese mode:**
-  - Type Pinyin.
-  - **Space** commits the first candidate, and **1–7** or a click selects another one.
-  - **−/=** or **Page Up/Page Down** change the page.
-  - **Esc** cancels.
-  - **Caps Lock** types Latin letters.
-- **Macros and the convert tool:** open them from the menu bar or tray menu.
-
-## Building from source
-
-See [BUILDING.md](BUILDING.md) for full instructions. In short:
+Xem [BUILDING.md](BUILDING.md). Ngắn gọn như sau:
 
 ```bash
-# macOS (full Xcode required); writes the DMG to dist/
-bash scripts/build-macos-dmg.sh
+bash scripts/build-macos-dmg.sh    # build DMG vào dist/ (cần Xcode đầy đủ)
+bash scripts/test-engine.sh        # kiểm thử engine gõ
+bash scripts/test-macos-events.sh  # kiểm thử xử lý phím trên macOS
+bash scripts/test-rime.sh          # kiểm thử gõ tiếng Trung
 ```
 
-The first macOS build needs network access. `scripts/fetch-rime.sh` downloads pinned releases of librime and the Rime data, checks their SHA-256 hashes and precompiles the dictionary.
+## Hạn chế đã biết
 
-On Windows, build `Sources/OpenKey/win32/OpenKey/OpenKey.sln` with Visual Studio or MSBuild.
-
-## Testing
-
-```bash
-bash scripts/test-engine.sh        # typing engine, code tables, smart switch (ASan/UBSan)
-bash scripts/test-macos-events.sh  # macOS event processing and event tap lifecycle
-bash scripts/test-rime.sh          # Chinese Pinyin input through librime
-bash scripts/test-macos-ui.sh /path/to/OpenKey.app /tmp/preferences.png  # UI layout QA (needs a GUI session)
-```
-
-The first three suites need only the Command Line Tools. CI runs all of them on every push to `master`, and runs the engine tests again on Windows with MSVC and Windows key codes.
-
-## Project structure
-
-```text
-Sources/OpenKey/
-├── engine/          Cross-platform C++ typing engine, macros, code-table conversion
-├── macOS/
-│   ├── ModernKey/   macOS app: event tap, UI, Rime bridge (OKRime), candidate panel
-│   └── Rime/        Rime configuration bundled with the app
-├── win32/           Windows app and updater (Visual Studio solution)
-└── linux/           Early Linux port inherited from upstream (not maintained here)
-scripts/             Build, Rime fetch and test scripts
-tests/               Regression and UI QA tests
-docs/images/         Screenshots
-```
-
-## Known limitations
-
-- **Unsigned builds:** builds are signed ad hoc and not notarized.
-- **Upstream update checks:** the built-in update checker still reads `version.json` from the upstream repository and links to upstream releases.
-- **No long-term interactive testing:** these situations have not been tested by hand over a long period:
-  - typing in Apple Mail, WebKit and Spotlight
-  - sleep and wake
+- **Chữ ký:** bản build chỉ ký ad hoc và chưa notarize.
+- **Cập nhật tự động:** từ bản 2.0.6, app kiểm tra bản mới trên repo này. Bản 2.0.5 vẫn đọc `version.json` của repo gốc, nên sẽ không tự báo có bản mới; hãy tải 2.0.6 từ trang Releases. Trên macOS, bấm "Có" sẽ mở trang tải DMG. Updater Windows chỉ tự thay `OpenKey64.exe`.
+- **Chưa kiểm thử tương tác lâu dài:** các tình huống sau chưa được thử bằng tay trong thời gian dài. Kiểm thử tự động chỉ dùng mock cho các tương tác hệ thống này.
+  - gõ trong Apple Mail, WebKit và Spotlight
+  - sleep/wake
   - Login Items
-  - Windows lock and unlock
+  - khóa/mở khóa trên Windows
+- **Tiếng Trung:** chỉ có trên macOS và chỉ hỗ trợ Pinyin giản thể.
+- **Linux:** bản Linux không được duy trì trong fork này.
 
-  The automated tests mock these system interactions.
-- **Chinese input:** available on macOS only, and only for Simplified Chinese Pinyin.
-- **Linux:** the port is not maintained in this fork.
+## Đóng góp
 
-## Contributing
+Rất hoan nghênh issue và pull request. Hãy tạo nhánh từ `master`, giữ thay đổi gọn gàng, thêm kiểm thử trong `tests/` khi thay đổi hành vi, và chạy các script kiểm thử trước khi gửi PR. Các bản sửa cho engine dùng chung cũng có thể gửi về [repo gốc](https://github.com/tuyenvm/OpenKey).
 
-Issues and pull requests are welcome.
+## Giấy phép
 
-1. Fork the repository and create a branch from `master`.
-2. Keep changes focused, and match the style of the surrounding code.
-3. Add or update tests in `tests/` when you change behavior, and run the test scripts above.
-4. Open a pull request that describes the change and how you verified it.
+OpenKey là phần mềm tự do theo giấy phép [GNU GPL v3.0](LICENSE). Đúng như giấy phép yêu cầu, bản fork này vẫn là mã nguồn mở và ghi rõ bản gốc là OpenKey.
 
-Fixes to the shared engine also benefit upstream. Consider proposing them to [tuyenvm/OpenKey](https://github.com/tuyenvm/OpenKey) too.
+App macOS có kèm các thành phần sau:
 
-## License
+- librime (BSD 3-Clause)
+- rime-prelude và rime-essay (LGPL-3.0)
+- rime-pinyin-simp (Apache-2.0)
 
-OpenKey is free software under the [GNU General Public License v3.0](LICENSE). As the license requires, this fork stays open source and credits the original project, OpenKey.
+Văn bản giấy phép nằm trong `OpenKey.app/Contents/Resources/Rime/licenses`.
 
-The macOS app bundles these third-party components. Their license texts ship in `OpenKey.app/Contents/Resources/Rime/licenses`.
+## Ghi nhận
 
-| Component | License |
-| --- | --- |
-| [librime](https://github.com/rime/librime) | BSD 3-Clause |
-| [rime-prelude](https://github.com/rime/rime-prelude) | LGPL-3.0 |
-| [rime-essay](https://github.com/rime/rime-essay) | LGPL-3.0 |
-| [rime-pinyin-simp](https://github.com/rime/rime-pinyin-simp) | Apache-2.0 |
-
-## Acknowledgements
-
-- **Mai Vũ Tuyên** created and maintains [OpenKey](https://github.com/tuyenvm/OpenKey). If OpenKey is useful to you, consider [supporting the original author](https://tuyenvm.github.io/donate.html).
-- Upstream contributors wrote the pull requests adapted here: **hungmtuci** (#333), **duyhnynh** (#332), **Quocker22** (#329), **luatnd** (#324), **uponatime2019** (#317), **nhutuananh** (#297), **kurokeita** (#289) and **quyleanh** (#287). Thanks also to everyone who has contributed to OpenKey over the years.
-- The [RIME](https://rime.im) project provides the Chinese input engine and data.
+- **Mai Vũ Tuyên** là tác giả và người duy trì [OpenKey](https://github.com/tuyenvm/OpenKey). Bạn có thể [ủng hộ tác giả gốc tại đây](https://tuyenvm.github.io/donate.html).
+- Các bản sửa lỗi được tích hợp từ PR của: hungmtuci, duyhnynh, Quocker22, luatnd, uponatime2019, nhutuananh, kurokeita và quyleanh.
+- Dự án [RIME](https://rime.im) cung cấp engine và dữ liệu gõ tiếng Trung.

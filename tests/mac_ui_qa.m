@@ -16,6 +16,10 @@ static void fail(NSString *message) { NSLog(@"UI QA failed: %@", message); exit(
 int main(int argc, const char *argv[]) { @autoreleasepool {
     if (argc != 3) return 2;
     [NSApplication sharedApplication];
+    // OPENKEY_UI_APPEARANCE=dark renders the dark appearance (light by default).
+    const char *appearance=getenv("OPENKEY_UI_APPEARANCE");
+    NSApp.appearance=[NSAppearance appearanceNamed:(appearance && strcmp(appearance, "dark")==0) ?
+        NSAppearanceNameDarkAqua : NSAppearanceNameAqua];
     Method method=class_getClassMethod([OpenKeyManager class], @selector(initEventTap));
     method_setImplementation(method, (IMP)skipEventTap);
     NSBundle *bundle=[NSBundle bundleWithPath:[NSString stringWithUTF8String:argv[1]]];

@@ -1,4 +1,4 @@
-> English: see [BUILDING.md](BUILDING.md). Giới thiệu fork: [README.vi.md](README.vi.md).
+> English: see [BUILDING.md](BUILDING.md). Giới thiệu fork: [README.md](README.md).
 
 ## Cách build cho macOS:
 
