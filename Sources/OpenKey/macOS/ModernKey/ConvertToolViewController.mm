@@ -134,14 +134,10 @@ extern AppDelegate* appDelegate;
 }
 
 -(void)turnOffAllOption {
-    convertToolToAllCaps = false;
-    [[NSUserDefaults standardUserDefaults] setInteger:convertToolToAllCaps forKey:@"convertToolToAllCaps"];
-    convertToolToAllNonCaps = false;
-    [[NSUserDefaults standardUserDefaults] setInteger:convertToolToAllNonCaps forKey:@"convertToolToAllNonCaps"];
-    convertToolToCapsFirstLetter = false;
-    [[NSUserDefaults standardUserDefaults] setInteger:convertToolToCapsFirstLetter forKey:@"convertToolToCapsFirstLetter"];
-    convertToolToCapsEachWord = false;
-    [[NSUserDefaults standardUserDefaults] setInteger:convertToolToCapsEachWord forKey:@"convertToolToCapsEachWord"];
+    convertToolToAllCaps = convertToolToAllNonCaps = convertToolToCapsFirstLetter = convertToolToCapsEachWord = false;
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    for (NSString *key in @[@"convertToolToAllCaps", @"convertToolToAllNonCaps", @"convertToolToCapsFirstLetter", @"convertToolToCapsEachWord"])
+        [defaults setInteger:0 forKey:key];
 }
 
 - (IBAction)onAlertWhenCompleted:(NSButton *)sender {
@@ -193,12 +189,7 @@ extern AppDelegate* appDelegate;
 }
 
 - (NSInteger)setCustomValue:(NSButton*)sender keyToSet:(NSString*) key {
-    NSInteger val = 0;
-    if (sender.state == NSControlStateValueOn) {
-        val = 1;
-    } else {
-        val = 0;
-    }
+    NSInteger val = sender.state == NSControlStateValueOn ? 1 : 0;
     if (key != nil)
         [[NSUserDefaults standardUserDefaults] setInteger:val forKey:key];
     return val;
@@ -213,33 +204,25 @@ extern AppDelegate* appDelegate;
 }
 
 - (IBAction)onSControl:(NSButton *)sender {
-    NSInteger val = sender.state == NSControlStateValueOn ? 1 : 0;
-    convertToolHotKey &= (~0x100);
-    convertToolHotKey |= val << 8;
-    [[NSUserDefaults standardUserDefaults] setInteger:convertToolHotKey forKey:@"convertToolHotKey"];
-    [appDelegate setQuickConvertString];
+    [self setHotKeyBit:0x100 fromButton:sender];
 }
 
 - (IBAction)onSOption:(NSButton *)sender {
-    NSInteger val = sender.state == NSControlStateValueOn ? 1 : 0;
-    convertToolHotKey &= (~0x200);
-    convertToolHotKey |= val << 9;
-    [[NSUserDefaults standardUserDefaults] setInteger:convertToolHotKey forKey:@"convertToolHotKey"];
-    [appDelegate setQuickConvertString];
+    [self setHotKeyBit:0x200 fromButton:sender];
 }
 
 - (IBAction)onSCommand:(NSButton *)sender {
-    NSInteger val = sender.state == NSControlStateValueOn ? 1 : 0;
-    convertToolHotKey &= (~0x400);
-    convertToolHotKey |= val << 10;
-    [[NSUserDefaults standardUserDefaults] setInteger:convertToolHotKey forKey:@"convertToolHotKey"];
-    [appDelegate setQuickConvertString];
+    [self setHotKeyBit:0x400 fromButton:sender];
 }
 
 - (IBAction)onSShift:(NSButton *)sender {
-    NSInteger val = sender.state == NSControlStateValueOn ? 1 : 0;
-    convertToolHotKey &= (~0x800);
-    convertToolHotKey |= val << 11;
+    [self setHotKeyBit:0x800 fromButton:sender];
+}
+
+// Sets one modifier of the quick convert hotkey from a checkbox and saves it.
+- (void)setHotKeyBit:(int)bit fromButton:(NSButton *)sender {
+    if (sender.state == NSControlStateValueOn) convertToolHotKey |= bit;
+    else convertToolHotKey &= ~bit;
     [[NSUserDefaults standardUserDefaults] setInteger:convertToolHotKey forKey:@"convertToolHotKey"];
     [appDelegate setQuickConvertString];
 }

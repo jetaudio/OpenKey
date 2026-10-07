@@ -487,31 +487,19 @@ static const CGFloat kSettingsMaxHeight = 640;
 }
 
 - (IBAction)onControlSwitchKey:(NSButton *)sender {
-    NSInteger val = [self setCustomValue:sender keyToSet:nil];
-    vSwitchKeyStatus &= (~0x100);
-    vSwitchKeyStatus |= val << 8;
-    [[NSUserDefaults standardUserDefaults] setInteger:vSwitchKeyStatus forKey:@"SwitchKeyStatus"];
+    [self setSwitchKeyBit:0x100 fromButton:sender];
 }
 
 - (IBAction)onOptionSwitchKey:(NSButton *)sender {
-    NSInteger val = [self setCustomValue:sender keyToSet:nil];
-    vSwitchKeyStatus &= (~0x200);
-    vSwitchKeyStatus |= val << 9;
-    [[NSUserDefaults standardUserDefaults] setInteger:vSwitchKeyStatus forKey:@"SwitchKeyStatus"];
+    [self setSwitchKeyBit:0x200 fromButton:sender];
 }
 
 - (IBAction)onCommandSwitchKey:(NSButton *)sender {
-    NSInteger val = [self setCustomValue:sender keyToSet:nil];
-    vSwitchKeyStatus &= (~0x400);
-    vSwitchKeyStatus |= val << 10;
-    [[NSUserDefaults standardUserDefaults] setInteger:vSwitchKeyStatus forKey:@"SwitchKeyStatus"];
+    [self setSwitchKeyBit:0x400 fromButton:sender];
 }
 
 - (IBAction)onShiftSwitchKey:(NSButton *)sender {
-    NSInteger val = [self setCustomValue:sender keyToSet:nil];
-    vSwitchKeyStatus &= (~0x800);
-    vSwitchKeyStatus |= val << 11;
-    [[NSUserDefaults standardUserDefaults] setInteger:vSwitchKeyStatus forKey:@"SwitchKeyStatus"];
+    [self setSwitchKeyBit:0x800 fromButton:sender];
 }
 
 - (IBAction)onFnSwitchKey:(NSButton *)sender {
@@ -536,9 +524,13 @@ static const CGFloat kSettingsMaxHeight = 640;
 }
 
 - (IBAction)onBeepSound:(NSButton *)sender {
-    unsigned int val = (unsigned int)[self setCustomValue:sender keyToSet:nil];
-    vSwitchKeyStatus &= (~0x8000);
-    vSwitchKeyStatus |= val << 15;
+    [self setSwitchKeyBit:0x8000 fromButton:sender];
+}
+
+// Sets one flag of the switch key status from a checkbox and saves it.
+- (void)setSwitchKeyBit:(int)bit fromButton:(NSButton *)sender {
+    if (sender.state == NSControlStateValueOn) vSwitchKeyStatus |= bit;
+    else vSwitchKeyStatus &= ~bit;
     [[NSUserDefaults standardUserDefaults] setInteger:vSwitchKeyStatus forKey:@"SwitchKeyStatus"];
 }
 
@@ -553,12 +545,7 @@ static const CGFloat kSettingsMaxHeight = 640;
 }
 
 - (NSInteger)setCustomValue:(NSButton*)sender keyToSet:(NSString*) key {
-    NSInteger val = 0;
-    if (sender.state == NSControlStateValueOn) {
-        val = 1;
-    } else {
-        val = 0;
-    }
+    NSInteger val = sender.state == NSControlStateValueOn ? 1 : 0;
     if (key != nil)
         [[NSUserDefaults standardUserDefaults] setInteger:val forKey:key];
     return val;
@@ -642,100 +629,53 @@ static const CGFloat kSettingsMaxHeight = 640;
 }
 
 -(void)fillData {
-    NSInteger value;
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    // Shows a stored 0/1 option on its checkbox and returns the stored value.
+    // (Some outlets are NSButtonCell, which also has setState:.)
+    NSInteger (^check)(id, NSString *) = ^NSInteger(id button, NSString *key) {
+        NSInteger value = [defaults integerForKey:key];
+        [button setState:value ? NSControlStateValueOn : NSControlStateValueOff];
+        return value;
+    };
     
     // Segments: Tiếng Việt, English, 中文; modes: 1, 0, 2.
     int mode = [appDelegate currentInputMode];
     languageControl.selectedSegment = mode == 1 ? 0 : (mode == 0 ? 1 : 2);
     
-    NSInteger intInputType = [[NSUserDefaults standardUserDefaults] integerForKey:@"InputType"];
-    [self.popupInputType selectItemAtIndex:intInputType];
-    
-    NSInteger intCodeTable = [[NSUserDefaults standardUserDefaults] integerForKey:@"CodeTable"];
-    [self.popupCode selectItemAtIndex:intCodeTable];
+    [self.popupInputType selectItemAtIndex:[defaults integerForKey:@"InputType"]];
+    [self.popupCode selectItemAtIndex:[defaults integerForKey:@"CodeTable"]];
     
     //option
-    NSInteger showui = [[NSUserDefaults standardUserDefaults] integerForKey:@"ShowUIOnStartup"];
-    self.ShowUIButton.state = showui ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    NSInteger freeMark = [[NSUserDefaults standardUserDefaults] integerForKey:@"FreeMark"];
-    self.FreeMarkButton.state = freeMark ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    NSInteger useModernOrthography = [[NSUserDefaults standardUserDefaults] integerForKey:@"ModernOrthography"];
-    self.UseModernOrthography.state = useModernOrthography ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    NSInteger spelling = [[NSUserDefaults standardUserDefaults] integerForKey:@"Spelling"];
-    self.CheckSpellingButton.state = spelling ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    NSInteger runOnStartup = [[NSUserDefaults standardUserDefaults] integerForKey:@"RunOnStartup"];
-    self.RunOnStartupButton.state = runOnStartup ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    NSInteger useGrayIcon = [[NSUserDefaults standardUserDefaults] integerForKey:@"GrayIcon"];
-    self.UseGrayIcon.state = useGrayIcon ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    NSInteger quicTelex = [[NSUserDefaults standardUserDefaults] integerForKey:@"QuickTelex"];
-    self.QuickTelex.state = quicTelex ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    NSInteger restoreIfInvalidWord = [[NSUserDefaults standardUserDefaults] integerForKey:@"RestoreIfInvalidWord"];
-    self.RestoreIfInvalidWord.state = restoreIfInvalidWord ? NSControlStateValueOn : NSControlStateValueOff;
+    check(self.ShowUIButton, @"ShowUIOnStartup");
+    check(self.FreeMarkButton, @"FreeMark");
+    check(self.UseModernOrthography, @"ModernOrthography");
+    NSInteger spelling = check(self.CheckSpellingButton, @"Spelling");
+    check(self.RunOnStartupButton, @"RunOnStartup");
+    check(self.UseGrayIcon, @"GrayIcon");
+    check(self.QuickTelex, @"QuickTelex");
+    check(self.RestoreIfInvalidWord, @"RestoreIfInvalidWord");
     [self.RestoreIfInvalidWord setEnabled:spelling];
-    
-    NSInteger tempOffSpelling = [[NSUserDefaults standardUserDefaults] integerForKey:@"vTempOffSpelling"];
-    self.TempOffSpellChecking.state = tempOffSpelling ? NSControlStateValueOn : NSControlStateValueOff;
+    check(self.TempOffSpellChecking, @"vTempOffSpelling");
     [self.TempOffSpellChecking setEnabled:spelling];
-    
-    NSInteger allowZFWJ = [[NSUserDefaults standardUserDefaults] integerForKey:@"vAllowConsonantZFWJ"];
-    self.AllowZWJF.state = allowZFWJ ? NSControlStateValueOn : NSControlStateValueOff;
+    check(self.AllowZWJF, @"vAllowConsonantZFWJ");
     [self.AllowZWJF setEnabled:spelling];
-    
-    NSInteger fixRecommendBrowser = [[NSUserDefaults standardUserDefaults] integerForKey:@"FixRecommendBrowser"];
-    self.FixRecommendBrowser.state = fixRecommendBrowser ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    NSInteger useMacro = [[NSUserDefaults standardUserDefaults] integerForKey:@"UseMacro"];
-    self.UseMacro.state = useMacro ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    NSInteger useMacroInEnglish = [[NSUserDefaults standardUserDefaults] integerForKey:@"UseMacroInEnglishMode"];
-    self.UseMacroInEnglishMode.state = useMacroInEnglish ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    NSInteger sendKeySbS = [[NSUserDefaults standardUserDefaults] integerForKey:@"SendKeyStepByStep"];
-    self.SendKeyStepByStep.state = sendKeySbS ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    NSInteger useSmartSwitchKey = [[NSUserDefaults standardUserDefaults] integerForKey:@"UseSmartSwitchKey"];
-    self.AutoRememberSwitchKey.state = useSmartSwitchKey ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    NSInteger upperCaseFirstChar = [[NSUserDefaults standardUserDefaults] integerForKey:@"UpperCaseFirstChar"];
-    self.UpperCaseFirstChar.state = upperCaseFirstChar ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    NSInteger quickStartConsonant = [[NSUserDefaults standardUserDefaults] integerForKey:@"vQuickStartConsonant"];
-    self.QuickStartConsonant.state = quickStartConsonant ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    NSInteger quickEndConsonant = [[NSUserDefaults standardUserDefaults] integerForKey:@"vQuickEndConsonant"];
-    self.QuickEndConsonant.state = quickEndConsonant ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    value = [[NSUserDefaults standardUserDefaults] integerForKey:@"vRememberCode"];
-    self.RememberTableCode.state = value ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    value = [[NSUserDefaults standardUserDefaults] integerForKey:@"vOtherLanguage"];
-    self.OtherLanguage.state = value ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    value = [[NSUserDefaults standardUserDefaults] integerForKey:@"vTempOffOpenKey"];
-    self.TempOffOpenKey.state = value ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    value = [[NSUserDefaults standardUserDefaults] integerForKey:@"vAutoCapsMacro"];
-    self.AutoCapsMacro.state = value ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    value = [[NSUserDefaults standardUserDefaults] integerForKey:@"vShowIconOnDock"];
-    self.ShowIconOnDock.state = value ? NSControlStateValueOn : NSControlStateValueOff;
-    
-    value = [[NSUserDefaults standardUserDefaults] integerForKey:@"DontCheckUpdate"];
-    self.CheckNewVersionOnStartup.state = value ? NSControlStateValueOff :NSControlStateValueOn;
-    
-    value = [[NSUserDefaults standardUserDefaults] integerForKey:@"vFixChromiumBrowser"];
-    self.FixChromiumBrowser.state = value ? NSControlStateValueOn : NSControlStateValueOff;
+    NSInteger fixRecommendBrowser = check(self.FixRecommendBrowser, @"FixRecommendBrowser");
+    check(self.UseMacro, @"UseMacro");
+    check(self.UseMacroInEnglishMode, @"UseMacroInEnglishMode");
+    check(self.SendKeyStepByStep, @"SendKeyStepByStep");
+    check(self.AutoRememberSwitchKey, @"UseSmartSwitchKey");
+    check(self.UpperCaseFirstChar, @"UpperCaseFirstChar");
+    check(self.QuickStartConsonant, @"vQuickStartConsonant");
+    check(self.QuickEndConsonant, @"vQuickEndConsonant");
+    check(self.RememberTableCode, @"vRememberCode");
+    check(self.OtherLanguage, @"vOtherLanguage");
+    check(self.TempOffOpenKey, @"vTempOffOpenKey");
+    check(self.AutoCapsMacro, @"vAutoCapsMacro");
+    check(self.ShowIconOnDock, @"vShowIconOnDock");
+    self.CheckNewVersionOnStartup.state = [defaults integerForKey:@"DontCheckUpdate"] ? NSControlStateValueOff : NSControlStateValueOn;
+    check(self.FixChromiumBrowser, @"vFixChromiumBrowser");
     self.FixChromiumBrowser.enabled = fixRecommendBrowser ? YES : NO;
-    
-    value = [[NSUserDefaults standardUserDefaults] integerForKey:@"vPerformLayoutCompat"];
-    self.PerformLayoutCompat.state = value ? NSControlStateValueOn : NSControlStateValueOff;
+    check(self.PerformLayoutCompat, @"vPerformLayoutCompat");
     
     CustomSwitchControl.state = (vSwitchKeyStatus & 0x100) ? NSControlStateValueOn : NSControlStateValueOff;
     CustomSwitchOption.state = (vSwitchKeyStatus & 0x200) ? NSControlStateValueOn : NSControlStateValueOff;
