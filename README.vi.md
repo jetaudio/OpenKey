@@ -74,14 +74,14 @@ Các bản sửa này được tích hợp từ 8 PR còn mở ở repo gốc: #
 
 **macOS**
 
-1. Tải file DMG từ artifact **OpenKey-macos-universal** của workflow [Build macOS DMG](https://github.com/jetaudio/OpenKey/actions/workflows/macos-dmg.yml), hoặc [tự build](BUILDING.md).
+1. Tải `OpenKey-<phiên bản>-macOS-universal.dmg` từ [bản phát hành mới nhất](https://github.com/jetaudio/OpenKey/releases/latest). Bản dựng thử nằm ở artifact **OpenKey-macos-universal** của workflow [Build macOS DMG](https://github.com/jetaudio/OpenKey/actions/workflows/macos-dmg.yml). Bạn cũng có thể [tự build](BUILDING.md).
 2. Mở DMG và kéo **OpenKey.app** vào **Applications**.
 3. Bản build được ký ad hoc và chưa notarize. Lần đầu mở, hãy bấm chuột phải vào app rồi chọn **Open**, hoặc cho phép trong **Cài đặt Hệ thống → Quyền riêng tư & Bảo mật**.
 4. Cấp quyền tại **Cài đặt Hệ thống → Quyền riêng tư & Bảo mật → Trợ năng**. Không tắt quyền này khi đang dùng OpenKey.
 
 **Windows**
 
-1. Tải artifact **OpenKey** từ workflow [MSBuild](https://github.com/jetaudio/OpenKey/actions/workflows/msbuild.yml).
+1. Tải `OpenKey-<phiên bản>-Windows.zip` từ [bản phát hành mới nhất](https://github.com/jetaudio/OpenKey/releases/latest), hoặc artifact **OpenKey** của workflow [MSBuild](https://github.com/jetaudio/OpenKey/actions/workflows/msbuild.yml).
 2. Giải nén, rồi chạy `x64/OpenKey64.exe` trên Windows 64-bit hoặc `x86/OpenKey32.exe` trên Windows 32-bit.
 3. Bấm đồng ý khi Windows hỏi quyền quản trị.
 

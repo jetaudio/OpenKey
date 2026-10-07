@@ -4,11 +4,15 @@ All notable changes to this fork are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 The fork is based on upstream [tuyenvm/OpenKey](https://github.com/tuyenvm/OpenKey)
-`master` at `89c2fd3` (app version 2.0.4, build 48). Builds are identified
-by the source commit in their file name, for example
-`OpenKey-2.0.4-<commit>-universal.dmg`. The upstream history is kept below.
+`master` at `89c2fd3` (app version 2.0.4, build 48). Development builds are
+identified by the source commit in their file name, for example
+`OpenKey-2.0.5-<commit>-universal.dmg`. The upstream history is kept below.
 
-## [Unreleased] – jetaudio fork
+## [Unreleased]
+
+## [2.0.5] – 2026-10-07
+
+First release of the jetaudio fork. macOS 2.0.5 (build 49), Windows 2.0.5.
 
 ### Added
 
@@ -81,6 +85,9 @@ by the source commit in their file name, for example
 
 - Dead code in the Windows hook, the engine and the macOS app: unused globals,
   conditions that are always false, and unreachable code.
+
+[Unreleased]: https://github.com/jetaudio/OpenKey/compare/v2.0.5...HEAD
+[2.0.5]: https://github.com/jetaudio/OpenKey/compare/89c2fd3...v2.0.5
 
 ---
 

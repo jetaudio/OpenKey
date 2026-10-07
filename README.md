@@ -3,6 +3,7 @@
 [![Build macOS DMG](https://github.com/jetaudio/OpenKey/actions/workflows/macos-dmg.yml/badge.svg)](https://github.com/jetaudio/OpenKey/actions/workflows/macos-dmg.yml)
 [![MSBuild](https://github.com/jetaudio/OpenKey/actions/workflows/msbuild.yml/badge.svg)](https://github.com/jetaudio/OpenKey/actions/workflows/msbuild.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/jetaudio/OpenKey)](https://github.com/jetaudio/OpenKey/releases/latest)
 ![Platforms](https://img.shields.io/badge/platforms-macOS%2012%2B%20%7C%20Windows-lightgrey)
 
 **An open-source Vietnamese input method for macOS and Windows, with Chinese Pinyin input on macOS.**
@@ -93,9 +94,7 @@ Inherited from OpenKey and available on both platforms unless noted:
 
 ### macOS
 
-1. Download the latest DMG:
-   - from the **OpenKey-macos-universal** artifact of a successful [Build macOS DMG](https://github.com/jetaudio/OpenKey/actions/workflows/macos-dmg.yml) run, or
-   - by [building it yourself](#building-from-source).
+1. Download `OpenKey-<version>-macOS-universal.dmg` from the [latest release](https://github.com/jetaudio/OpenKey/releases/latest). Development builds are available as the **OpenKey-macos-universal** artifact of [Build macOS DMG](https://github.com/jetaudio/OpenKey/actions/workflows/macos-dmg.yml) runs, or you can [build it yourself](#building-from-source).
 2. Open the DMG and drag **OpenKey.app** to **Applications**.
 3. The app has an ad hoc signature and is not notarized. On first launch, right-click it and choose **Open**, or allow it in **System Settings → Privacy & Security**.
 4. Grant Accessibility access in **System Settings → Privacy & Security → Accessibility**. Keep it enabled while OpenKey runs.
@@ -105,7 +104,7 @@ Inherited from OpenKey and available on both platforms unless noted:
 
 ### Windows
 
-1. Download the **OpenKey** artifact from a successful [MSBuild](https://github.com/jetaudio/OpenKey/actions/workflows/msbuild.yml) run.
+1. Download `OpenKey-<version>-Windows.zip` from the [latest release](https://github.com/jetaudio/OpenKey/releases/latest), or the **OpenKey** artifact of an [MSBuild](https://github.com/jetaudio/OpenKey/actions/workflows/msbuild.yml) run.
 2. Extract it anywhere and run `x64/OpenKey64.exe` on 64-bit Windows or `x86/OpenKey32.exe` on 32-bit Windows.
 3. Accept the administrator prompt. OpenKey runs elevated so that it can type into games and elevated apps.
 
