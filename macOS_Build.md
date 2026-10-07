@@ -1,4 +1,17 @@
 ## Cách build cho macOS:
+
+### Build DMG bằng dòng lệnh hoặc GitHub Actions
+
+Fork này có workflow **Build macOS DMG** trong tab **Actions**. Chọn **Run workflow** để tạo bản Release universal cho Apple Silicon (`arm64`) và Intel (`x86_64`). Tải artifact **OpenKey-macos-universal** sau khi workflow thành công; artifact gồm DMG, SHA-256 và thông tin commit/toolchain.
+
+Để build trên máy có Xcode đầy đủ:
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer bash scripts/build-macos-dmg.sh
+```
+
+Kết quả nằm trong `dist/`. Bản tự build dùng chữ ký ad hoc, chưa notarize bằng tài khoản Apple Developer. Việc build và kiểm tra DMG không thay thế kiểm thử gõ tiếng Việt và cấp quyền Accessibility trên máy sử dụng.
+
 Vì một số lý do mà OpenKey không thể đưa lêp Mac App Store được, nếu các bạn không yên tâm về file build chính thức từ tác giả, các bạn có thể tải mã nguồn về tự build lấy OpenKey cho mình. 
 
 Yêu cầu:
