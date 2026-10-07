@@ -309,7 +309,7 @@ static void SendBackspace() {
 	SendInput(2, backspaceEvent, sizeof(INPUT));
 	if (isMetroApp)
 		SendMetroAppBackspace();
-	if (IS_DOUBLE_CODE(vCodeTable)) { //VNI or Unicode Compound
+	if (IS_DOUBLE_CODE(vCodeTable) && !_syncKey.empty()) { //VNI or Unicode Compound
 		if (_syncKey.back() > 1) {
 			SendInput(2, backspaceEvent, sizeof(INPUT));
 			if (isMetroApp)
@@ -331,8 +331,10 @@ static void SendEmptyCharacter() {
 static void SendNewCharString(const bool& dataFromMacro = false) {
 	_j = 0;
 	_newCharSize = dataFromMacro ? (Uint16)pData->macroData.size() : pData->newCharCount;
-	if (_newCharString.size() < _newCharSize) {
-		_newCharString.resize(_newCharSize);
+	//each character may take two slots (1 byte code tables, compound marks),
+	//plus the restored key and the terminating null
+	if (_newCharString.size() < _newCharSize * 2 + 2) {
+		_newCharString.resize(_newCharSize * 2 + 2);
 	}
 	_willSendControlKey = false;
 	
@@ -398,7 +400,8 @@ static void SendNewCharString(const bool& dataFromMacro = false) {
 		startNewSession();
 	}
 
-	OpenKeyHelper::setClipboardText((LPCTSTR)_newCharString.data(), _newCharSize + 1, CF_UNICODETEXT);
+	_newCharString[_j] = 0;
+	OpenKeyHelper::setClipboardText((LPCTSTR)_newCharString.data(), _j + 1, CF_UNICODETEXT);
 
 	//Send shift + insert
 	SendCombineKey(KEY_LEFT_SHIFT, VK_INSERT, 0, KEYEVENTF_EXTENDEDKEY);
