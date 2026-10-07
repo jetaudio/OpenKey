@@ -62,7 +62,7 @@ static vector<Byte> savedSmartSwitchKeyData; ////use for smart switch key
 static bool _hasJustUsedHotKey = false;
 
 static INPUT backspaceEvent[2];
-static INPUT keyEvent[4];
+static INPUT keyEvent[2];
 
 LRESULT CALLBACK keyboardHookProcess(int nCode, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK mouseHookProcess(int nCode, WPARAM wParam, LPARAM lParam);
@@ -231,12 +231,15 @@ static inline void prepareUnicodeEvent(INPUT& input, const Uint16& unicode, cons
 }
 
 static void SendCombineKey(const Uint16& key1, const Uint16& key2, const DWORD& flagKey1=0, const DWORD& flagKey2 = 0) {
-	//key1 down, key2 down, key2 up, key1 up: one SendInput keeps the sequence in order and uninterrupted
 	prepareKeyEvent(keyEvent[0], key1, true, flagKey1);
-	prepareKeyEvent(keyEvent[1], key2, true, flagKey2);
-	prepareKeyEvent(keyEvent[2], key2, false, flagKey2);
-	prepareKeyEvent(keyEvent[3], key1, false, flagKey1);
-	SendInput(4, keyEvent, sizeof(INPUT));
+	SendInput(1, keyEvent, sizeof(INPUT));
+
+	prepareKeyEvent(keyEvent[0], key2, true, flagKey2);
+	prepareKeyEvent(keyEvent[1], key2, false, flagKey2);
+	SendInput(2, keyEvent, sizeof(INPUT));
+
+	prepareKeyEvent(keyEvent[0], key1, false, flagKey1);
+	SendInput(1, keyEvent, sizeof(INPUT));
 }
 
 //send key down + key up of a virtual key
