@@ -10,6 +10,10 @@ identified by the source commit in their file name, for example
 
 ## [Unreleased]
 
+## [2.0.6] – 2026-10-07
+
+macOS 2.0.6 (build 50), Windows 2.0.6. First version that checks this fork for updates.
+
 ### Changed
 
 - The update checker on macOS and Windows reads `version.json` from this
@@ -98,7 +102,8 @@ First release of the jetaudio fork. macOS 2.0.5 (build 49), Windows 2.0.5.
 - Dead code in the Windows hook, the engine and the macOS app: unused globals,
   conditions that are always false, and unreachable code.
 
-[Unreleased]: https://github.com/jetaudio/OpenKey/compare/v2.0.5...HEAD
+[Unreleased]: https://github.com/jetaudio/OpenKey/compare/v2.0.6...HEAD
+[2.0.6]: https://github.com/jetaudio/OpenKey/compare/v2.0.5...v2.0.6
 [2.0.5]: https://github.com/jetaudio/OpenKey/compare/89c2fd3...v2.0.5
 
 ---
