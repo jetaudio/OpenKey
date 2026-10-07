@@ -9,6 +9,8 @@
 #import "OpenKeyManager.h"
 
 extern void OpenKeyInit(void);
+extern void OpenKeyFree(void);
+void OpenKeyReEnableEventTap(void);
 
 extern CGEventRef OpenKeyCallback(CGEventTapProxy proxy,
                                   CGEventType type,
@@ -29,6 +31,7 @@ static BOOL _isInited = NO;
 static CFMachPortRef      eventTap;
 static CGEventMask        eventMask;
 static CFRunLoopSourceRef runLoopSource;
+static CFRunLoopTimerRef watchdogTimer;
 
 +(BOOL)isInited {
     return _isInited;
@@ -46,9 +49,7 @@ static CFRunLoopSourceRef runLoopSource;
                  (1 << kCGEventKeyUp) |
                  (1 << kCGEventFlagsChanged) |
                  (1 << kCGEventLeftMouseDown) |
-                 (1 << kCGEventRightMouseDown) |
-                 (1 << kCGEventLeftMouseDragged) |
-                 (1 << kCGEventRightMouseDragged));
+                 (1 << kCGEventRightMouseDown));
     
     eventTap = CGEventTapCreate(kCGSessionEventTap,
                                 kCGHeadInsertEventTap,
@@ -60,26 +61,55 @@ static CFRunLoopSourceRef runLoopSource;
     if (!eventTap) {
         
         fprintf(stderr, "failed to create event tap\n");
+        OpenKeyFree();
         return NO;
     }
     
-    _isInited = YES;
-    
     // Create a run loop source.
     runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0);
+    if (runLoopSource == NULL) {
+        CFMachPortInvalidate(eventTap);
+        CFRelease(eventTap);
+        eventTap = NULL;
+        OpenKeyFree();
+        return NO;
+    }
     
     // Add to the current run loop.
-    CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopCommonModes);
+    CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, kCFRunLoopCommonModes);
     
     // Enable the event tap.
     CGEventTapEnable(eventTap, true);
+    _isInited = YES;
+    watchdogTimer = CFRunLoopTimerCreateWithHandler(kCFAllocatorDefault,
+        CFAbsoluteTimeGetCurrent() + 0.5, 0.5, 0, 0, ^(CFRunLoopTimerRef timer) {
+            if (eventTap != NULL && !CGEventTapIsEnabled(eventTap)) {
+                OpenKeyReEnableEventTap();
+            }
+        });
+    if (watchdogTimer != NULL) {
+        CFRunLoopAddTimer(CFRunLoopGetMain(), watchdogTimer, kCFRunLoopCommonModes);
+    }
     
     return YES;
 }
 
+// Called from OpenKeyCallback when macOS reports that it turned our tap off.
+// Only this file owns `eventTap`, so re-enabling has to happen here.
+void OpenKeyReEnableEventTap(void) {
+    if (eventTap) {
+        CGEventTapEnable(eventTap, true);
+    }
+}
+
 +(BOOL)stopEventTap {
+    if (watchdogTimer != NULL) {
+        CFRunLoopTimerInvalidate(watchdogTimer);
+        CFRelease(watchdogTimer);
+        watchdogTimer = NULL;
+    }
     if (_isInited) { //release all object
-        CFRunLoopRemoveSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopCommonModes);
+        CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, kCFRunLoopCommonModes);
         CFRelease(runLoopSource);
         runLoopSource = nil;
         
@@ -88,6 +118,7 @@ static CFRunLoopSourceRef runLoopSource;
         eventTap = nil;
         
         _isInited = false;
+        OpenKeyFree();
     }
     return YES;
 }

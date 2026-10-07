@@ -291,7 +291,7 @@ extern bool convertToolDontAlertWhenCompleted;
     vFreeMark = 0; [[NSUserDefaults standardUserDefaults] setInteger:vFreeMark forKey:@"FreeMark"];
     vCheckSpelling = 1; [[NSUserDefaults standardUserDefaults] setInteger:vCheckSpelling forKey:@"Spelling"];
     vCodeTable = 0; [[NSUserDefaults standardUserDefaults] setInteger:vCodeTable forKey:@"CodeTable"];
-    vSwitchKeyStatus = DEFAULT_SWITCH_STATUS; [[NSUserDefaults standardUserDefaults] setInteger:vCodeTable forKey:@"SwitchKeyStatus"];
+    vSwitchKeyStatus = DEFAULT_SWITCH_STATUS; [[NSUserDefaults standardUserDefaults] setInteger:vSwitchKeyStatus forKey:@"SwitchKeyStatus"];
     vQuickTelex = 0; [[NSUserDefaults standardUserDefaults] setInteger:vQuickTelex forKey:@"QuickTelex"];
     vUseModernOrthography = 0; [[NSUserDefaults standardUserDefaults] setInteger:vUseModernOrthography forKey:@"ModernOrthography"];
     vRestoreIfWrongSpelling = 0; [[NSUserDefaults standardUserDefaults] setInteger:vRestoreIfWrongSpelling forKey:@"RestoreIfInvalidWord"];
@@ -314,12 +314,26 @@ extern bool convertToolDontAlertWhenCompleted;
 
     [[NSUserDefaults standardUserDefaults] setInteger:1 forKey:@"GrayIcon"];
     [[NSUserDefaults standardUserDefaults] setInteger:1 forKey:@"RunOnStartup"];
+    [self setRunOnStartup:YES];
 
     [self fillData];
     [viewController fillData];
 }
 
 -(void)setRunOnStartup:(BOOL)val {
+    if (@available(macOS 13.0, *)) {
+        SMAppService *service = [SMAppService mainAppService];
+        NSError *error = nil;
+        BOOL success = YES;
+        if (val && service.status == SMAppServiceStatusNotRegistered) {
+            success = [service registerAndReturnError:&error];
+        } else if (!val && (service.status == SMAppServiceStatusEnabled ||
+                            service.status == SMAppServiceStatusRequiresApproval)) {
+            success = [service unregisterAndReturnError:&error];
+        }
+        if (!success) NSLog(@"OpenKey login item update failed: %@", error);
+        return;
+    }
     CFStringRef appId = (__bridge CFStringRef)@"com.tuyenmai.OpenKeyHelper";
     SMLoginItemSetEnabled(appId, val);
 }
@@ -418,20 +432,15 @@ extern bool convertToolDontAlertWhenCompleted;
     }
     vCodeTable = (int)intCode;
     
-    //
-    NSInteger intRunOnStartup = [[NSUserDefaults standardUserDefaults] integerForKey:@"RunOnStartup"];
-    [self setRunOnStartup:intRunOnStartup ? YES : NO];
-
 }
 
 -(void)onImputMethodChanged:(BOOL)willNotify {
-    NSInteger intInputMethod = [[NSUserDefaults standardUserDefaults] integerForKey:@"InputMethod"];
-    if (intInputMethod == 0)
-        intInputMethod = 1;
-    else
-        intInputMethod = 0;
-    vLanguage = (int)intInputMethod;
-    [[NSUserDefaults standardUserDefaults] setInteger:intInputMethod forKey:@"InputMethod"];
+    [self setInputMethod:(vLanguage == 0 ? 1 : 0) willNotify:willNotify];
+}
+
+-(void)setInputMethod:(int)targetLanguage willNotify:(BOOL)willNotify {
+    vLanguage = targetLanguage & 1;
+    [[NSUserDefaults standardUserDefaults] setInteger:vLanguage forKey:@"InputMethod"];
 
     [self fillData];
     [viewController fillData];
@@ -470,15 +479,37 @@ extern bool convertToolDontAlertWhenCompleted;
     [self onCodeTableChanged:(int)menuItem.tag];
 }
 
+// Recover only windows whose title bar is no longer reachable on any display.
+- (void)showWindowController:(NSWindowController *)controller {
+    NSWindow *window = controller.window;
+    NSRect frame = window.frame;
+    NSRect titleBar = NSMakeRect(NSMinX(frame), NSMaxY(frame) - 30, NSWidth(frame), 30);
+    BOOL reachable = NO;
+    for (NSScreen *screen in [NSScreen screens]) {
+        NSRect overlap = NSIntersectionRect(titleBar, screen.visibleFrame);
+        if (overlap.size.width >= 80 && overlap.size.height >= 20) {
+            reachable = YES;
+            break;
+        }
+    }
+    if (!reachable) {
+        NSScreen *screen = [NSScreen mainScreen] ?: [NSScreen screens].firstObject;
+        if (screen != nil) {
+            NSRect visible = screen.visibleFrame;
+            [window setFrameOrigin:NSMakePoint(NSMidX(visible) - NSWidth(frame) / 2,
+                                               NSMidY(visible) - NSHeight(frame) / 2)];
+        }
+    }
+    [window setLevel:NSFloatingWindowLevel];
+    [NSApp activateIgnoringOtherApps:YES];
+    [window makeKeyAndOrderFront:nil];
+}
+
 -(void)onConvertTool {
     if (_convertWC == nil) {
         _convertWC = [[NSStoryboard storyboardWithName:@"Main" bundle:nil] instantiateControllerWithIdentifier:@"ConvertWindow"];
     }
-    //[OpenKeyManager showDockIcon:YES];
-    if ([_convertWC.window isVisible])
-        return;
-    [_convertWC.window makeKeyAndOrderFront:nil];
-    [_convertWC.window setLevel:NSFloatingWindowLevel];
+    [self showWindowController:_convertWC];
 }
 
 -(void)onQuickConvert {
@@ -495,36 +526,21 @@ extern bool convertToolDontAlertWhenCompleted;
     if (_mainWC == nil) {
         _mainWC = [[NSStoryboard storyboardWithName:@"Main" bundle:nil] instantiateControllerWithIdentifier:@"OpenKey"];
     }
-    //[OpenKeyManager showDockIcon:YES];
-    if ([_mainWC.window isVisible]) {
-        return;
-    }
-    [_mainWC.window makeKeyAndOrderFront:nil];
-    [_mainWC.window setLevel:NSFloatingWindowLevel];
+    [self showWindowController:_mainWC];
 }
 
 -(void) onMacroSelected {
     if (_macroWC == nil) {
         _macroWC = [[NSStoryboard storyboardWithName:@"Main" bundle:nil] instantiateControllerWithIdentifier:@"MacroWindow"];
     }
-    //[OpenKeyManager showDockIcon:YES];
-    if ([_macroWC.window isVisible])
-        return;
-    
-    [_macroWC.window makeKeyAndOrderFront:nil];
-    [_macroWC.window setLevel:NSFloatingWindowLevel];
+    [self showWindowController:_macroWC];
 }
 
 -(void) onAboutSelected {
     if (_aboutWC == nil) {
         _aboutWC = [[NSStoryboard storyboardWithName:@"Main" bundle:nil] instantiateControllerWithIdentifier:@"AboutWindow"];
     }
-    //[OpenKeyManager showDockIcon:YES];
-    if ([_aboutWC.window isVisible])
-        return;
-
-    [_aboutWC.window makeKeyAndOrderFront:nil];
-    [_aboutWC.window setLevel:NSFloatingWindowLevel];
+    [self showWindowController:_aboutWC];
 }
 
 #pragma mark -Short key event

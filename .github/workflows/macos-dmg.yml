@@ -9,6 +9,8 @@ on:
       - 'Sources/OpenKey/macOS/**'
       - 'scripts/build-macos-dmg.sh'
       - '.github/workflows/macos-dmg.yml'
+      - 'tests/**'
+      - 'scripts/test-*.sh'
 
 permissions:
   contents: read
@@ -19,6 +21,10 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Engine regression tests
+        run: bash scripts/test-engine.sh
+      - name: macOS event regression tests
+        run: bash scripts/test-macos-events.sh
       - name: Build and verify universal DMG
         run: bash scripts/build-macos-dmg.sh
       - name: Upload DMG and build information
