@@ -77,6 +77,44 @@ void OpenKeyFree() {
 	UnhookWinEvent(hSystemEvent);
 }
 
+// Reinstall after unlock, without periodically interrupting active typing.
+bool OpenKeyReinitHooks() {
+    HINSTANCE instance = GetModuleHandle(NULL);
+    HHOOK keyboard = SetWindowsHookEx(WH_KEYBOARD_LL, keyboardHookProcess, instance, 0);
+    HHOOK mouse = SetWindowsHookEx(WH_MOUSE_LL, mouseHookProcess, instance, 0);
+    HWINEVENTHOOK foreground = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND,
+        NULL, winEventProcCallback, 0, 0, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
+    if (keyboard == NULL || mouse == NULL || foreground == NULL) {
+        if (keyboard != NULL) UnhookWindowsHookEx(keyboard);
+        if (mouse != NULL) UnhookWindowsHookEx(mouse);
+        if (foreground != NULL) UnhookWinEvent(foreground);
+        OutputDebugString(_T("OpenKey: failed to restore hooks after session unlock.\n"));
+        return false;
+    }
+
+    // Keep the previous hooks until every replacement has been created.
+    OpenKeyFree();
+    hKeyboardHook = keyboard;
+    hMouseHook = mouse;
+    hSystemEvent = foreground;
+    _flag = 0;
+    if (GetAsyncKeyState(VK_SHIFT) < 0) _flag |= MASK_SHIFT;
+    if (GetAsyncKeyState(VK_CONTROL) < 0) _flag |= MASK_CONTROL;
+    if (GetAsyncKeyState(VK_MENU) < 0) _flag |= MASK_ALT;
+    if (GetAsyncKeyState(VK_LWIN) < 0 || GetAsyncKeyState(VK_RWIN) < 0) _flag |= MASK_WIN;
+    if (GetKeyState(VK_CAPITAL) & 1) _flag |= MASK_CAPITAL;
+    if (GetKeyState(VK_NUMLOCK) & 1) _flag |= MASK_NUMLOCK;
+    if (GetKeyState(VK_SCROLL) & 1) _flag |= MASK_SCROLL;
+    _lastFlag = 0;
+    _keycode = 0;
+    _flagChanged = false;
+    _isFlagKey = false;
+    _hasJustUsedHotKey = false;
+    _syncKey.clear();
+    startNewSession();
+    return true;
+}
+
 void OpenKeyInit() {
 	APP_GET_DATA(vLanguage, 1);
 	APP_GET_DATA(vInputType, 0);

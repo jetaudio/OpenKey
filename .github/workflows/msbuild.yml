@@ -1,6 +1,7 @@
 name: MSBuild
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "master" ]
   pull_request:
@@ -8,7 +9,7 @@ on:
 
 env:
   # Path to the solution file relative to the root of the project.
-  SOLUTION_FILE_PATH: .\Sources\OpenKey\win32\OpenKey
+  SOLUTION_FILE_PATH: .\Sources\OpenKey\win32\OpenKey\OpenKey.sln
 
   # Configuration type to build.
   # You can convert this to a build matrix if you need coverage of multiple configuration types.
@@ -28,11 +29,45 @@ jobs:
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2
 
-    - name: Build x86
-      run: msbuild -m -target:Rebuild -p:Configuration=Release -p:Platform=x86 ${{env.SOLUTION_FILE_PATH}}
+    - name: Engine regression tests with Windows key codes
+      shell: pwsh
+      run: |
+        $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+        @"
+        @echo off
+        call "$vs\VC\Auxiliary\Build\vcvars64.bat"
+        if errorlevel 1 exit /b 1
+        cl /nologo /EHsc /std:c++14 /utf-8 /I Sources\OpenKey\engine Sources\OpenKey\engine\*.cpp tests\engine_regression.cpp /Fe:engine-tests.exe
+        if errorlevel 1 exit /b 1
+        engine-tests.exe
+        exit /b %errorlevel%
+        "@ | Set-Content -Path engine-tests.cmd
+        cmd /c engine-tests.cmd
+        if ($LASTEXITCODE -ne 0) { throw 'Engine regression tests failed' }
 
-    - name: Build x64
-      run: msbuild -m -target:Rebuild -p:Configuration=Release -p:Platform=x64 ${{env.SOLUTION_FILE_PATH}}
+    - name: Build and verify x86 and x64 executables
+      shell: pwsh
+      run: |
+        foreach ($arch in @('x86', 'x64')) {
+          $platform = if ($arch -eq 'x86') { 'Win32' } else { 'x64' }
+          $output = "$env:GITHUB_WORKSPACE\ArtifactOutput\$arch\"
+          foreach ($project in @('OpenKey', 'OpenKeyUpdate')) {
+            $source = "$env:GITHUB_WORKSPACE\Sources\OpenKey\win32\OpenKey\$project\$project.vcxproj"
+            $intermediate = "$env:GITHUB_WORKSPACE\build\obj\$project\$arch\"
+            msbuild $source -m -target:Rebuild -p:Configuration=Release "-p:Platform=$platform" "-p:OutDir=$output" "-p:IntDir=$intermediate"
+            if ($LASTEXITCODE -ne 0) { throw "Build failed: $project $arch" }
+          }
+          $main = if ($arch -eq 'x86') { 'OpenKey32.exe' } else { 'OpenKey64.exe' }
+          foreach ($file in @($main, 'OpenKeyUpdate.exe')) {
+            $path = Join-Path $output $file
+            if (!(Test-Path $path)) { throw "Missing artifact: $path" }
+            $data = [IO.File]::ReadAllBytes($path)
+            $pe = [BitConverter]::ToInt32($data, 0x3c)
+            $machine = [BitConverter]::ToUInt16($data, $pe + 4)
+            $expected = if ($arch -eq 'x86') { 0x14c } else { 0x8664 }
+            if ($machine -ne $expected) { throw "Wrong architecture: $path" }
+          }
+        }
 
     - name: Upload a Build Artifact
       id: upload
@@ -40,8 +75,9 @@ jobs:
       with:
         name: OpenKey
         path: |
-          ${{env.SOLUTION_FILE_PATH}}/Release/
-          ${{env.SOLUTION_FILE_PATH}}/x64/Release/
+          ArtifactOutput/x86/*.exe
+          ArtifactOutput/x64/*.exe
+        if-no-files-found: error
 
     outputs:
       subject-name: OpenKey

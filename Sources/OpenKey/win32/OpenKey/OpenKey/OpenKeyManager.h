@@ -22,6 +22,7 @@ public:
 
 	static void initEngine();
 	static void freeEngine();
+	static bool reinitHooks();
 
 	static bool checkUpdate(string& newVersion);
 
