@@ -25,6 +25,16 @@ static int keysym(CGKeyCode code, CGEventFlags flags, int *mask, UniChar charact
     return result;
 }
 
+// Pages forward until the character is on screen, then selects it.
+static BOOL pickByPaging(OKRime *rime, NSString *character) {
+    OKRimeComposition *page = [rime composition];
+    for (int guard = 0; guard < 40 && ![page.candidates containsObject:character]; guard++) {
+        [rime processKeysym:0xff56 mask:0];
+        page = [rime composition];
+    }
+    return [rime selectCandidateOnCurrentPage:[page.candidates indexOfObject:character]];
+}
+
 int main(int argc, const char *argv[]) { @autoreleasepool {
     NSString *root = [NSString stringWithUTF8String:argv[1]];
     NSString *user = [NSTemporaryDirectory() stringByAppendingPathComponent:[NSUUID UUID].UUIDString];
@@ -70,14 +80,7 @@ int main(int argc, const char *argv[]) { @autoreleasepool {
     // and Shift+Delete or Control+K forgets it again.
     typeKeys(rime, @"laoshiren", 0);
     expect(![[rime composition].candidates.firstObject isEqualToString:@"捞尸人"], @"unlearned phrase is not first");
-    for (NSString *character in @[@"捞", @"尸", @"人"]) {
-        OKRimeComposition *page = [rime composition];
-        for (int guard = 0; guard < 40 && ![page.candidates containsObject:character]; guard++) {
-            [rime processKeysym:0xff56 mask:0];
-            page = [rime composition];
-        }
-        expect([rime selectCandidateOnCurrentPage:[page.candidates indexOfObject:character]], @"pick character");
-    }
+    for (NSString *character in @[@"捞", @"尸", @"人"]) expect(pickByPaging(rime, character), @"pick character");
     expect([[rime takeCommit] isEqualToString:@"捞尸人"], @"phrase built from characters commits");
     for (NSNumber *forget in @[@0xffff, @'k']) {
         typeKeys(rime, @"laoshiren", 0);
@@ -87,14 +90,7 @@ int main(int argc, const char *argv[]) { @autoreleasepool {
         [rime clearComposition];
         if (forget.intValue == 0xffff) {
             typeKeys(rime, @"laoshiren", 0);  // learn again for the Control+K case
-            for (NSString *character in @[@"捞", @"尸", @"人"]) {
-                OKRimeComposition *page = [rime composition];
-                for (int guard = 0; guard < 40 && ![page.candidates containsObject:character]; guard++) {
-                    [rime processKeysym:0xff56 mask:0];
-                    page = [rime composition];
-                }
-                [rime selectCandidateOnCurrentPage:[page.candidates indexOfObject:character]];
-            }
+            for (NSString *character in @[@"捞", @"尸", @"人"]) pickByPaging(rime, character);
             [rime takeCommit];
         }
     }

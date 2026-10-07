@@ -138,12 +138,25 @@ static const int kRimeAltMask = 1 << 3;
     return text.length > 0 ? text : nil;
 }
 
+static BOOL hasComposition(const RimeContext &context) {
+    return context.composition.length > 0 || context.menu.num_candidates > 0;
+}
+
+- (BOOL)isComposing {
+    if (!_ready) return NO;
+    RIME_STRUCT(RimeContext, context);
+    if (!_api->get_context(_session, &context)) return NO;
+    BOOL composing = hasComposition(context);
+    _api->free_context(&context);
+    return composing;
+}
+
 - (OKRimeComposition *)composition {
     if (!_ready) return nil;
     RIME_STRUCT(RimeContext, context);
     if (!_api->get_context(_session, &context)) return nil;
     OKRimeComposition *result = nil;
-    if (context.composition.length > 0 || context.menu.num_candidates > 0) {
+    if (hasComposition(context)) {
         result = [[OKRimeComposition alloc] init];
         result.preedit = context.composition.preedit ? [NSString stringWithUTF8String:context.composition.preedit] : @"";
         NSMutableArray *candidates = [NSMutableArray array], *comments = [NSMutableArray array];
@@ -196,10 +209,10 @@ static const int kRimeAltMask = 1 << 3;
         case kVK_Space: *mask = modifiers; return 0x20;
         default: break;
     }
+    if (flags & kCGEventFlagMaskCommand) return 0;
     UniChar characters[4];
     UniCharCount length = 0;
     CGEventKeyboardGetUnicodeString(event, 4, &length, characters);
-    if (flags & kCGEventFlagMaskCommand) return 0;
     if (flags & kCGEventFlagMaskControl) {
         // Control turns letters into ASCII control codes 1-26.
         if (!composing || length != 1 || characters[0] < 1 || characters[0] > 26) return 0;

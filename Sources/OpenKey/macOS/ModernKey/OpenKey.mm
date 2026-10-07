@@ -77,7 +77,7 @@ extern "C" {
     vector<Uint16> _syncKey;
     
     Uint16 _uniChar[2];
-    int _i, _j;
+    int _i;
     bool _hasJustUsedHotKey = false;
 
     int _languageTemp = 0; //use for smart switch key
@@ -164,11 +164,11 @@ extern "C" {
     }
     
     void queryFrontMostApp() {
-        if ([[[NSWorkspace sharedWorkspace] frontmostApplication].bundleIdentifier compare:OPENKEY_BUNDLE] != 0) {
-            _frontMostApp = [[NSWorkspace sharedWorkspace] frontmostApplication].bundleIdentifier;
+        NSRunningApplication *app = [[NSWorkspace sharedWorkspace] frontmostApplication];
+        if ([app.bundleIdentifier compare:OPENKEY_BUNDLE] != 0) {
+            _frontMostApp = app.bundleIdentifier;
             if (_frontMostApp == nil)
-                _frontMostApp = [[NSWorkspace sharedWorkspace] frontmostApplication].localizedName != nil ?
-                [[NSWorkspace sharedWorkspace] frontmostApplication].localizedName : @"UnknownApp";
+                _frontMostApp = app.localizedName != nil ? app.localizedName : @"UnknownApp";
         }
     }
     
@@ -178,9 +178,8 @@ extern "C" {
     
     BOOL containUnicodeCompoundApp(NSString* topApp) {
         if (topApp == nil) return false;
-        for (_j = 0; _j < [_unicodeCompoundApp count]; _j++) {
-            if ([topApp hasPrefix:[_unicodeCompoundApp objectAtIndex:_j]] || [[_unicodeCompoundApp objectAtIndex:_j] isEqualToString:topApp])
-                return true;
+        for (NSString *prefix in _unicodeCompoundApp) {
+            if ([topApp hasPrefix:prefix]) return true; // also covers an exact match
         }
         return false;
     }
@@ -559,11 +558,11 @@ extern "C" {
         dispatch_once(&once, ^{
             [OKCandidatePanel shared].onSelect = ^(NSInteger index) { ChineseCandidateClicked(index); };
         });
-        OKRimeComposition *before = [rime composition];
+        BOOL composing = [rime isComposing];
         // Caps Lock types Latin letters, as in the system Pinyin input.
-        if ((_flag & kCGEventFlagMaskAlphaShift) && before == nil) return event;
+        if ((_flag & kCGEventFlagMaskAlphaShift) && !composing) return event;
         int mask = 0;
-        int keysym = [OKRime keysymForEvent:event keyCode:_keycode flags:_flag composing:(before != nil) mask:&mask];
+        int keysym = [OKRime keysymForEvent:event keyCode:_keycode flags:_flag composing:composing mask:&mask];
         if (keysym == 0) return event;
         BOOL handled = [rime processKeysym:keysym mask:mask];
         NSString *commit = [rime takeCommit];
@@ -604,8 +603,9 @@ extern "C" {
     
     void handleMacro() {
         //fix autocomplete
-        BOOL selectionReplacement = shouldUseSelectionReplacement(FRONT_APP);
-        if (!selectionReplacement && shouldUseRecommendWorkaround(FRONT_APP)) {
+        NSString *frontApp = FRONT_APP;
+        BOOL selectionReplacement = shouldUseSelectionReplacement(frontApp);
+        if (!selectionReplacement && shouldUseRecommendWorkaround(frontApp)) {
             SendEmptyCharacter();
             pData->backspaceCount++;
         }
@@ -768,7 +768,8 @@ extern "C" {
         }
 
         //if "turn off Vietnamese when in other language" mode on
-        if (vOtherLanguage) {
+        //(key up passes through either way, so only key down needs the input source)
+        if (vOtherLanguage && type == kCGEventKeyDown) {
             TISInputSourceRef source = TISCopyCurrentKeyboardInputSource();
             BOOL otherLanguage = NO;
             if (source != NULL) {
@@ -812,10 +813,11 @@ extern "C" {
                 return event;
             } else if (pData->code == vWillProcess || pData->code == vRestore || pData->code == vRestoreAndStartNewSession) { //handle result signal
                 
-                BOOL selectionReplacement = shouldUseSelectionReplacement(FRONT_APP);
+                NSString *frontApp = FRONT_APP;
+                BOOL selectionReplacement = shouldUseSelectionReplacement(frontApp);
                 //fix autocomplete
-                if (!selectionReplacement && shouldUseRecommendWorkaround(FRONT_APP) && pData->extCode != 4) {
-                    if (vFixChromiumBrowser && [_unicodeCompoundApp containsObject:FRONT_APP]) {
+                if (!selectionReplacement && shouldUseRecommendWorkaround(frontApp) && pData->extCode != 4) {
+                    if (vFixChromiumBrowser && [_unicodeCompoundApp containsObject:frontApp]) {
                         if (pData->backspaceCount > 0) {
                             SendShiftAndLeftArrow();
                             if (pData->backspaceCount == 1)

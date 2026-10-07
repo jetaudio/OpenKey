@@ -118,7 +118,7 @@ static std::u16string typedText() {
     }
     return result;
 }
-static CGEventRef chineseKey(CGKeyCode key, UniChar character, CGEventFlags flags) {
+static CGEventRef chineseKey(CGKeyCode key, UniChar character, CGEventFlags flags=0) {
     CGEventRef event=CGEventCreateKeyboardEvent(NULL,key,true);
     CGEventSetFlags(event,flags);
     if (character) CGEventKeyboardSetUnicodeString(event,1,&character);
@@ -127,14 +127,19 @@ static CGEventRef chineseKey(CGKeyCode key, UniChar character, CGEventFlags flag
     CFRelease(event);
     return result;
 }
-static CGEventRef chineseKey(CGKeyCode key, UniChar character, CGEventFlags flags=0);
 // Types ASCII through the callback; keys the tap lets through are recorded as
 // typed, and the result is read back like an editor applying backspaces.
+static CGKeyCode keyCodeFor(char c) {
+    switch (c) {
+        case 'a': return KEY_A; case 'e': return KEY_E; case 'g': return KEY_G; case 'h': return KEY_H;
+        case 'i': return KEY_I; case 'j': return KEY_J; case 'm': return KEY_M; case 'n': return KEY_N;
+        case 'o': return KEY_O; case 's': return KEY_S; case 't': return KEY_T; case 'v': return KEY_V;
+        case ' ': return KEY_SPACE; case '\b': return KEY_DELETE; default: return 0;
+    }
+}
 static void typeThrough(const char *keys) {
-    NSDictionary *codes=@{@"a":@KEY_A,@"e":@KEY_E,@"g":@KEY_G,@"h":@KEY_H,@"i":@KEY_I,@"j":@KEY_J,@"m":@KEY_M,
-        @"n":@KEY_N,@"o":@KEY_O,@"s":@KEY_S,@"t":@KEY_T,@"v":@KEY_V,@" ":@KEY_SPACE,@"\b":@KEY_DELETE};
     for (const char *c=keys; *c; c++) {
-        CGKeyCode code=(CGKeyCode)[codes[[NSString stringWithFormat:@"%c",*c]] intValue];
+        CGKeyCode code=keyCodeFor(*c);
         UniChar character=*c;
         if (chineseKey(code,character)!=NULL) {
             std::u16string text(1,(char16_t)character);

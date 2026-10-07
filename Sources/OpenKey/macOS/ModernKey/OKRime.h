@@ -42,6 +42,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (nullable NSString *)takeCommit;
 // Current composition, or nil when nothing is being composed.
 - (nullable OKRimeComposition *)composition;
+// Same as composition != nil, without building the snapshot.
+- (BOOL)isComposing;
 - (BOOL)selectCandidateOnCurrentPage:(NSInteger)index;
 - (void)clearComposition;
 
