@@ -1,3 +1,5 @@
+> English: see [BUILDING.md](BUILDING.md). Giới thiệu fork: [README.vi.md](README.vi.md).
+
 ## Cách build cho macOS:
 
 ### Build DMG bằng dòng lệnh hoặc GitHub Actions

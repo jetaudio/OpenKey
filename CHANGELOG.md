@@ -1,4 +1,91 @@
-# OpenKey Change Log
+# Changelog
+
+All notable changes to this fork are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+The fork is based on upstream [tuyenvm/OpenKey](https://github.com/tuyenvm/OpenKey)
+`master` at `89c2fd3` (app version 2.0.4, build 48). Builds are identified
+by the source commit in their file name, for example
+`OpenKey-2.0.4-<commit>-universal.dmg`. The upstream history is kept below.
+
+## [Unreleased] – jetaudio fork
+
+### Added
+
+- **Chinese Pinyin input mode (中) on macOS**, powered by librime and the
+  official `pinyin_simp` schema:
+  - a candidate panel at the caret, with paging and mouse selection
+  - phrase learning, and forgetting a learned phrase with Shift+Delete or Control+K
+  - the mode shortcut now cycles Vietnamese → English → 中
+- `scripts/fetch-rime.sh` downloads pinned, checksummed librime and Rime data
+  and precompiles the dictionary. An Xcode build phase embeds them in the app.
+- Globe/Fn key support for the mode-switch shortcut on macOS (upstream #324).
+- Simple Telex 1 and 2 in the Windows settings and tray menu (upstream #289).
+- Regression tests that run under AddressSanitizer/UndefinedBehaviorSanitizer:
+  - engine: code-table conversion, smart-switch preferences, tone placement in
+    old and modern orthography
+  - macOS: event processing and event tap lifecycle, with system calls mocked
+  - librime: Chinese input
+  - a UI QA tool that checks the compiled storyboard and window layouts
+- GitHub Actions workflows:
+  - a universal (`arm64` + `x86_64`) macOS DMG
+  - Windows x86/x64 builds with PE machine checks and build-provenance attestation
+  - engine tests with MSVC and Windows key codes
+
+### Changed
+
+- The preferences, macro, convert-tool and About windows on macOS are redesigned
+  in the macOS 26 (Tahoe) settings style. Storyboard outlets and actions are unchanged.
+- On macOS, developer apps (Terminal and similar) start in English, but
+  saved per-app choices and code tables are kept (upstream #333).
+- macOS login items use `SMAppService` on macOS 13 and later (upstream #333).
+- The minimum macOS version is now **12 Monterey**.
+- Less work per keystroke:
+  - the frontmost app and the input source are looked up once per key
+  - the engine avoids repeated map lookups and copies
+  - Chinese mode checks for an active composition without building the candidate list
+- Repeated settings code in the macOS preferences and convert tool, and
+  repeated `SendInput` code on Windows, is collapsed into shared helpers.
+
+### Fixed
+
+- macOS event tap: it is re-enabled after a timeout or user-input
+  notification, with a 0.5 s watchdog. Modifier and composition state is reset
+  (upstream #332, #333).
+- Backspace events are allocated fresh for every replacement, and long strings
+  are sent in complete UTF-16 chunks, including surrogate pairs (upstream #333).
+- Spotlight: text is replaced in place only when the Spotlight field really has
+  focus. Hidden or fading windows are ignored, and focus queries time out after
+  20 ms (upstream #329).
+- Fn combined with another key no longer switches the language when Fn is
+  released (upstream #324).
+- Windows: keyboard hooks are restored on session unlock. If installing a new
+  hook fails, the old hook is kept (upstream #317).
+- Windows: fixed a buffer overrun and a stray trailing character in the
+  clipboard paste path.
+- Windows: an empty key history no longer causes an out-of-range access on
+  backspace.
+- The convert tool keeps letter case when removing marks, and still decodes
+  single-byte VNI/CP1258 characters (upstream #297).
+- Packed smart-switch preferences keep their code-table bits (upstream #333).
+- The Vietnamese engine starts a new word when entering or leaving Chinese mode,
+  so an unfinished word does not join the next one.
+- Tone placement no longer depends on platform key codes. In modern
+  orthography, "iê"/"yê" was matched with a bitwise test that matched every
+  letter on Windows. Placement on macOS is unchanged.
+- The Windows artifact paths are fixed, and the app and updater are built for
+  both architectures (upstream #287).
+- The preferences title no longer overlaps the first row of controls.
+
+### Removed
+
+- Dead code in the Windows hook, the engine and the macOS app: unused globals,
+  conditions that are always false, and unreachable code.
+
+---
+
+# OpenKey Change Log (upstream)
+
 
 ##### OpenKey for Linux: (in development)
 
