@@ -12,6 +12,21 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer bash scripts/build-maco
 
 Kết quả nằm trong `dist/`. Bản tự build dùng chữ ký ad hoc, chưa notarize bằng tài khoản Apple Developer. Việc build và kiểm tra DMG không thay thế kiểm thử gõ tiếng Việt và cấp quyền Accessibility trên máy sử dụng.
 
+Các kiểm thử hồi quy có thể chạy bằng Command Line Tools:
+
+```bash
+bash scripts/test-engine.sh
+bash scripts/test-macos-events.sh
+```
+
+Để kiểm tra outlet, bố cục và thao tác Fn trên storyboard đã compile (máy cần có phiên đăng nhập đồ họa):
+
+```bash
+bash scripts/test-macos-ui.sh /path/to/OpenKey.app /tmp/openkey-preferences.png
+```
+
+Lệnh UI QA dùng executable riêng và thay việc khởi tạo event tap bằng stub; không khởi chạy OpenKey hoặc gửi phím. Chi tiết review 8 PR và giới hạn kiểm chứng nằm trong [PR_REVIEW.md](PR_REVIEW.md).
+
 Vì một số lý do mà OpenKey không thể đưa lêp Mac App Store được, nếu các bạn không yên tâm về file build chính thức từ tác giả, các bạn có thể tải mã nguồn về tự build lấy OpenKey cho mình. 
 
 Yêu cầu:
