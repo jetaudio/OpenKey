@@ -10,6 +10,7 @@
 #import "OpenKeyManager.h"
 #import "AppDelegate.h"
 #import "MyTextField.h"
+#import "OKFormUI.h"
 
 extern AppDelegate* appDelegate;
 extern void OnSpellCheckingChanged(void);
@@ -39,6 +40,12 @@ extern int vAutoCapsMacro;
 extern int vFixChromiumBrowser;
 extern int vPerformLayoutCompat;
 
+static const CGFloat kSettingsWidth = 620;
+static const CGFloat kSettingsMaxHeight = 640;
+
+@interface ViewController () <NSToolbarDelegate>
+@end
+
 @implementation ViewController {
     __weak IBOutlet NSButton *CustomSwitchCommand;
     __weak IBOutlet NSButton *CustomSwitchOption;
@@ -47,83 +54,58 @@ extern int vPerformLayoutCompat;
     __weak IBOutlet NSButton *CustomSwitchFn;
     __weak IBOutlet MyTextField *CustomSwitchKey;
     __weak IBOutlet NSButton *CustomBeepSound;
-    NSArray* tabviews, *tabbuttons;
-    NSRect tabViewRect;
-    NSView* tabButtonBackground;
+    NSArray<NSScrollView *> *pages;
+    NSArray<NSString *> *pageTitles;
+    NSArray<NSString *> *pageIdentifiers;
+    OKFormBuilder *form;
+    NSSegmentedControl *languageControl;
+    NSInteger currentTab;
 }
 
 - (void)viewDidLoad {
     [super viewDidLoad];
     viewController = self;
     CustomSwitchKey.Parent = self;
-    
-    self.appOK.hidden = YES;
-    self.permissionWarning.hidden = YES;
-    self.retryButton.enabled = NO;
- 
-    NSRect parentRect = self.viewParent.frame;
-    parentRect.size.height = 490;
-    self.viewParent.frame = parentRect;
-    
-    //set correct tabgroup
-    tabviews = [NSArray arrayWithObjects:self.tabviewPrimary, self.tabviewMacro, self.tabviewSystem, self.tabviewInfo, nil];
-    tabbuttons = [NSArray arrayWithObjects:self.tabbuttonPrimary, self.tabbuttonMacro, self.tabbuttonSystem, self.tabbuttonInfo, nil];
-    NSButton* firstTabButton = [tabbuttons objectAtIndex:0];
-    NSRect tabButtonBackgroundRect = firstTabButton.frame;
-    for (NSButton* button in tabbuttons) {
-        tabButtonBackgroundRect = NSUnionRect(tabButtonBackgroundRect, button.frame);
-    }
-    tabButtonBackgroundRect = NSInsetRect(tabButtonBackgroundRect, -2, -2);
-    tabButtonBackground = [[NSView alloc] initWithFrame:tabButtonBackgroundRect];
-    [tabButtonBackground setWantsLayer:YES];
-    tabButtonBackground.layer.backgroundColor = [[NSColor windowBackgroundColor] CGColor];
-    [self.view addSubview:tabButtonBackground];
-    tabViewRect = self.tabviewPrimary.frame;
-    for (NSBox* b in tabviews) {
-        b.frame = tabViewRect;
-    }
-    
-    [self showTab:0];
-    
+
     NSArray* inputTypeData = [[NSArray alloc] initWithObjects:@"Telex", @"VNI", @"Simple Telex 1", @"Simple Telex 2", nil];
     NSArray* codeData = [OpenKeyManager getTableCodes];
-    
+
     //preset data
     [_popupInputType removeAllItems];
     [_popupInputType addItemsWithTitles:inputTypeData];
-    
+
     [self.popupCode removeAllItems];
     [self.popupCode addItemsWithTitles:codeData];
-    
-    [self initKey];
-    
-    [self fillData];
-    
+
     // set version info
-    self.VersionInfo.stringValue = [NSString stringWithFormat:@"Phiên bản %@ (build %@) - Ngày cập nhật %@",
+    self.VersionInfo.stringValue = [NSString stringWithFormat:@"Phiên bản %@ (build %@) · Cập nhật %@",
     [[NSBundle mainBundle] objectForInfoDictionaryKey: @"CFBundleShortVersionString"],
     [[NSBundle mainBundle] objectForInfoDictionaryKey: @"CFBundleVersion"],
     [OpenKeyManager getBuildDate]] ;
+
+    [self buildSettingsPages];
+
+    [self initKey];
+
+    [self fillData];
+
+    [self showTab:0];
+}
+
+- (void)viewWillAppear {
+    [super viewWillAppear];
+    [self installToolbarIfNeeded];
+    [self initKey];
 }
 
 - (void)viewDidAppear {
     [super viewDidAppear];
-    NSString* str = @"OpenKey %@ - Bộ gõ Tiếng Việt";
-    self.view.window.title = [NSString stringWithFormat:str, [[NSBundle mainBundle] objectForInfoDictionaryKey: @"CFBundleShortVersionString"]];
-}
-
-- (void)viewWillAppear {
-    [self initKey];
+    self.view.window.title = pageTitles[currentTab];
 }
 
 -(void)initKey {
     dispatch_async(dispatch_get_main_queue(), ^{
-        if (![OpenKeyManager initEventTap]) {
-            //self.permissionWarning.hidden = NO;
-            //self.retryButton.enabled = YES;
-        } else {
-            //self.appOK.hidden = NO;
-        }
+        [OpenKeyManager initEventTap];
     });
 }
 
@@ -133,31 +115,294 @@ extern int vPerformLayoutCompat;
     // Update the view, if already loaded.
 }
 
--(void)showTab:(NSInteger)index {
-    NSRect tempRect = tabViewRect;
-    tempRect.origin.y = 1000;
-    for (NSBox* b in tabviews) {
-        [b setHidden:YES];
-        b.frame = tempRect;
-    }
-    for (NSButton* b in tabbuttons) {
-        [b setState:NSControlStateValueOff];
-    }
-    NSBox* b = [tabviews objectAtIndex:index];
-    [b setHidden:NO];
-    b.frame = tabViewRect;
-    
-    NSButton* button = [tabbuttons objectAtIndex:index];
-    [button setState:NSControlStateValueOn];
+#pragma mark - Settings layout
 
-    [self.view addSubview:tabButtonBackground positioned:NSWindowAbove relativeTo:b];
-    for (NSButton* tabButton in tabbuttons) {
-        [self.view addSubview:tabButton positioned:NSWindowAbove relativeTo:nil];
+- (NSScrollView *)buildGeneralPage {
+    NSStackView *stack = [form pageStack];
+
+    languageControl = [NSSegmentedControl segmentedControlWithLabels:@[@"Tiếng Việt", @"English"]
+                                                        trackingMode:NSSegmentSwitchTrackingSelectOne
+                                                              target:self
+                                                              action:@selector(onLanguageSegment:)];
+    [languageControl setToolTip:@"Chế độ gõ Tiếng Việt" forSegment:0];
+    [languageControl setToolTip:@"Chế độ gõ Tiếng Anh" forSegment:1];
+    [form prepareInlinePopup:self.popupInputType];
+    [form prepareInlinePopup:self.popupCode];
+    [form addSection:nil rows:@[
+        [form rowWithTitle:@"Chế độ gõ" detail:nil accessory:languageControl],
+        [form rowWithTitle:@"Kiểu gõ" detail:nil accessory:self.popupInputType],
+        [form rowWithTitle:@"Bảng mã" detail:@"Thường dùng Unicode" accessory:self.popupCode],
+    ] note:nil toStack:stack];
+
+    // Modifier keys of the switching shortcut, shown as one multi-select control.
+    NSArray<NSButton *> *modifiers = @[CustomSwitchControl, CustomSwitchOption, CustomSwitchCommand, CustomSwitchShift, CustomSwitchFn];
+    NSSegmentedControl *modifierControl = [form modifierControlForButtons:modifiers labels:@[@"⌃", @"⌥", @"⌘", @"⇧", @"🌐"]];
+    MyTextField *keyField = CustomSwitchKey;
+    [form prepareKeyField:keyField];
+    NSTextField *plus = [form labelWithString:@"+" font:[NSFont systemFontOfSize:13] color:[NSColor secondaryLabelColor]];
+    NSStackView *shortcut = [NSStackView stackViewWithViews:@[modifierControl, plus, keyField]];
+    shortcut.spacing = 8;
+
+    [form addSection:@"Phím chuyển chế độ" rows:@[
+        [form rowWithTitle:@"Phím tắt" detail:nil accessory:shortcut],
+        [form toggleRowForButton:CustomBeepSound title:@"Kêu beep khi chuyển chế độ"
+                          detail:@"Không áp dụng với chuyển chế độ thông minh"],
+    ] note:@"Để dùng phím 🌐, vào Cài đặt Hệ thống → Bàn phím và đặt “Nhấn phím 🌐” thành “Không làm gì”." toStack:stack];
+
+    [form addSection:@"Chuyển chế độ thông minh" rows:@[
+        [form toggleRowForButton:self.AutoRememberSwitchKey title:@"Chuyển chế độ thông minh"
+                          detail:@"Tự ghi nhớ chế độ gõ theo từng ứng dụng"],
+        [form toggleRowForButton:self.RememberTableCode title:@"Tự ghi nhớ bảng mã theo ứng dụng" detail:nil],
+        [form toggleRowForButton:(NSButton *)self.OtherLanguage.controlView title:@"Tắt tiếng Việt khi bộ gõ hệ thống khác tiếng Anh"
+                          detail:nil],
+    ] note:nil toStack:stack];
+    return [form scrollPageWithStack:stack];
+}
+
+- (NSScrollView *)buildTypingPage {
+    NSStackView *stack = [form pageStack];
+    [form addSection:@"Chính tả" rows:@[
+        [form toggleRowForButton:self.CheckSpellingButton title:@"Kiểm tra chính tả"
+                          detail:@"Hạn chế gõ sai từ tiếng Việt"],
+        [form toggleRowForButton:self.RestoreIfInvalidWord title:@"Tự khôi phục phím với từ sai"
+                          detail:@"Từ không đúng chính tả tiếng Việt được trả lại các phím đã gõ"],
+        [form toggleRowForButton:self.AllowZWJF title:@"Cho phép “z w j f” làm phụ âm đầu" detail:nil],
+    ] note:nil toStack:stack];
+    [form addSection:@"Dấu và chữ hoa" rows:@[
+        [form toggleRowForButton:self.UseModernOrthography title:@"Đặt dấu kiểu mới: oà, uý"
+                          detail:@"Thay vì kiểu cũ òa, úy"],
+        [form toggleRowForButton:self.UpperCaseFirstChar title:@"Viết hoa chữ cái đầu câu"
+                          detail:@"Sau dấu chấm câu và khi xuống dòng"],
+    ] note:nil toStack:stack];
+    [form addSection:@"Phím tạm tắt" rows:@[
+        [form toggleRowForButton:self.TempOffSpellChecking title:@"Tạm tắt chính tả bằng phím ⌃"
+                          detail:@"Cho từ như Đắk Lắk, Krông…; tự bật lại ở từ tiếp theo"],
+        [form toggleRowForButton:self.TempOffOpenKey title:@"Tạm tắt OpenKey bằng phím ⌘"
+                          detail:@"Tạm ngừng cho tới khi bạn gõ một từ mới"],
+    ] note:nil toStack:stack];
+    return [form scrollPageWithStack:stack];
+}
+
+- (NSScrollView *)buildMacroPage {
+    NSStackView *stack = [form pageStack];
+    [form addSection:@"Gõ tắt" rows:@[
+        [form toggleRowForButton:self.UseMacro title:@"Cho phép gõ tắt"
+                          detail:@"Tiết kiệm thời gian gõ các cụm từ thường dùng"],
+        [form toggleRowForButton:self.UseMacroInEnglishMode title:@"Gõ tắt cả khi tắt tiếng Việt" detail:nil],
+        [form toggleRowForButton:self.AutoCapsMacro title:@"Tự động viết hoa theo phím tắt" detail:nil],
+        [form rowWithTitle:@"Bảng gõ tắt" detail:@"Quản lý danh sách từ gõ tắt"
+                 accessory:[OKFormBuilder pushButtonWithTitle:@"Chỉnh sửa…" target:self action:@selector(onMacroButton:)]],
+    ] note:nil toStack:stack];
+    [form addSection:@"Gõ nhanh" rows:@[
+        [form toggleRowForButton:self.QuickTelex title:@"Gõ nhanh phụ âm"
+                          detail:@"cc→ch, gg→gi, kk→kh, nn→ng, qq→qu, pp→ph, tt→th"],
+        [form toggleRowForButton:self.QuickStartConsonant title:@"Gõ tắt phụ âm đầu"
+                          detail:@"f→ph, j→gi, w→qu  ·  fải→phải, jảng→giảng"],
+        [form toggleRowForButton:self.QuickEndConsonant title:@"Gõ tắt phụ âm cuối"
+                          detail:@"g→ng, h→nh, k→ch  ·  nhah→nhanh, bák→bách"],
+    ] note:nil toStack:stack];
+    return [form scrollPageWithStack:stack];
+}
+
+- (NSScrollView *)buildSystemPage {
+    NSStackView *stack = [form pageStack];
+    [form addSection:@"Khởi động" rows:@[
+        [form toggleRowForButton:self.RunOnStartupButton title:@"Khởi động cùng macOS" detail:nil],
+        [form toggleRowForButton:self.ShowUIButton title:@"Mở cửa sổ này khi khởi động" detail:nil],
+        [form toggleRowForButton:self.CheckNewVersionOnStartup title:@"Kiểm tra bản mới khi khởi động" detail:nil],
+    ] note:nil toStack:stack];
+    [form addSection:@"Giao diện" rows:@[
+        [form toggleRowForButton:self.ShowIconOnDock title:@"Hiện biểu tượng trên Dock" detail:nil],
+        [form toggleRowForButton:self.UseGrayIcon title:@"Biểu tượng hiện đại trên thanh menu"
+                          detail:@"Biểu tượng đơn sắc, hợp với Dark Mode"],
+    ] note:nil toStack:stack];
+    [form addSection:@"Tương thích" rows:@[
+        [form toggleRowForButton:self.FixRecommendBrowser title:@"Sửa lỗi gợi ý"
+                          detail:@"Tránh lặp chữ trên thanh địa chỉ trình duyệt, Excel…"],
+        [form toggleRowForButton:self.FixChromiumBrowser title:@"Sửa lỗi trên Chromium (beta)" detail:nil],
+        [form toggleRowForButton:self.SendKeyStepByStep title:@"Gửi từng phím"
+                          detail:@"Mặc định nên tắt; chỉ bật khi ứng dụng gõ bị lỗi"],
+        [form toggleRowForButton:self.PerformLayoutCompat title:@"Tương thích Telex trên layout khác"
+                          detail:@"Dvorak, Colemak…"],
+    ] note:nil toStack:stack];
+
+    NSButton *checkButton = self.CheckNewVersionButton;
+    [OKFormBuilder preparePushButton:checkButton];
+    checkButton.title = @"Kiểm tra bản mới…";
+    [form addSection:@"OpenKey" rows:@[
+        [form rowWithTitle:@"Cập nhật" detail:nil accessory:checkButton],
+        [form rowWithTitle:@"Khôi phục cài đặt mặc định" detail:nil
+                 accessory:[OKFormBuilder pushButtonWithTitle:@"Khôi phục…" target:self action:@selector(onDefaultConfig:)]],
+        [form rowWithTitle:@"Thoát OpenKey" detail:@"Ngừng bộ gõ và ẩn biểu tượng trên thanh menu"
+                 accessory:[OKFormBuilder pushButtonWithTitle:@"Thoát" target:self action:@selector(onTerminateApp:)]],
+    ] note:nil toStack:stack];
+    return [form scrollPageWithStack:stack];
+}
+
+- (NSScrollView *)buildAboutPage {
+    NSArray<NSView *> *header = [form aboutHeaderWithVersionField:self.VersionInfo];
+    NSTextField *about = [form labelWithString:@"OpenKey cho macOS là phần mềm mã nguồn mở, phát hành miễn phí. Bạn có thể góp ý và đề xuất tính năng mới qua email của tác giả hoặc trên GitHub."
+                                          font:[NSFont systemFontOfSize:12] color:[NSColor secondaryLabelColor]];
+    about.alignment = NSTextAlignmentCenter;
+    about.preferredMaxLayoutWidth = 420;
+
+    NSStackView *links = [NSStackView stackViewWithViews:@[
+        [OKFormBuilder pushButtonWithTitle:@"Trang chủ" target:self action:@selector(onHomePageLink:)],
+        [OKFormBuilder pushButtonWithTitle:@"Facebook" target:self action:@selector(onFanpageLink:)],
+        [OKFormBuilder pushButtonWithTitle:@"Mã nguồn" target:self action:@selector(onSourceCode:)],
+    ]];
+    links.spacing = 8;
+
+    NSTextField *copyright = [form labelWithString:@"© 2019 Mai Vũ Tuyên" font:[NSFont systemFontOfSize:11] color:[NSColor tertiaryLabelColor]];
+    NSStackView *footer = [NSStackView stackViewWithViews:@[copyright,
+        [OKFormBuilder linkButtonWithTitle:@"maivutuyen.91@gmail.com" target:self action:@selector(onEmailLink:)]]];
+    footer.spacing = 6;
+
+    for (NSTextField *label in @[about, copyright]) {
+        label.alignment = NSTextAlignmentCenter;
+        [label setContentHuggingPriority:NSLayoutPriorityDefaultHigh forOrientation:NSLayoutConstraintOrientationHorizontal];
     }
+    
+    NSStackView *stack = [NSStackView stackViewWithViews:[header arrayByAddingObjectsFromArray:@[about, links, footer]]];
+    stack.orientation = NSUserInterfaceLayoutOrientationVertical;
+    stack.alignment = NSLayoutAttributeCenterX;
+    stack.spacing = 4;
+    stack.edgeInsets = NSEdgeInsetsMake(28, 24, 24, 24);
+    stack.translatesAutoresizingMaskIntoConstraints = NO;
+    [stack setCustomSpacing:12 afterView:header[0]];
+    [stack setCustomSpacing:8 afterView:header[2]];
+    [stack setCustomSpacing:18 afterView:header[3]];
+    [stack setCustomSpacing:20 afterView:about];
+    [stack setCustomSpacing:24 afterView:links];
+    return [form scrollPageWithStack:stack];
+}
+
+- (void)buildSettingsPages {
+    form = [[OKFormBuilder alloc] initWithWidth:kSettingsWidth];
+    pageTitles = @[@"Chung", @"Bộ gõ", @"Gõ tắt", @"Hệ thống", @"Thông tin"];
+    pageIdentifiers = @[@"general", @"typing", @"macro", @"system", @"about"];
+    // Controls are moved into the new pages before the storyboard layout is
+    // discarded, so their weak outlets stay valid.
+    pages = @[[self buildGeneralPage], [self buildTypingPage], [self buildMacroPage],
+              [self buildSystemPage], [self buildAboutPage]];
+    for (NSView *view in [self.view.subviews copy]) {
+        [view removeFromSuperview];
+    }
+}
+
+- (CGFloat)heightForPage:(NSScrollView *)page {
+    NSView *document = page.documentView;
+    [document layoutSubtreeIfNeeded];
+    CGFloat maxHeight = kSettingsMaxHeight;
+    NSScreen *screen = self.view.window.screen ?: [NSScreen mainScreen];
+    if (screen != nil) maxHeight = MIN(maxHeight, NSHeight(screen.visibleFrame) - 140);
+    return MIN(ceil(document.fittingSize.height), maxHeight);
+}
+
+- (void)resizeWindowForTab:(NSInteger)index animate:(BOOL)animate {
+    CGFloat height = [self heightForPage:pages[index]];
+    NSWindow *window = self.view.window;
+    if (window == nil) {
+        [self.view setFrameSize:NSMakeSize(kSettingsWidth, height)];
+        return;
+    }
+    NSRect frame = window.frame;
+    NSSize content = window.contentView.frame.size;
+    frame.size.width += kSettingsWidth - content.width;
+    frame.size.height += height - content.height;
+    frame.origin.y = NSMaxY(window.frame) - NSHeight(frame);
+    [window setFrame:frame display:YES animate:animate && window.isVisible];
+}
+
+-(void)showTab:(NSInteger)index {
+    currentTab = index;
+    NSScrollView *page = pages[index];
+    for (NSScrollView *other in pages) {
+        if (other != page) [other removeFromSuperview];
+    }
+    if (page.superview == nil) {
+        [self.view addSubview:page];
+        [NSLayoutConstraint activateConstraints:@[
+            [page.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+            [page.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+            [page.topAnchor constraintEqualToAnchor:self.view.topAnchor],
+            [page.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
+        ]];
+    }
+    [page.contentView scrollToPoint:NSZeroPoint];
+    [page reflectScrolledClipView:page.contentView];
+
+    NSWindow *window = self.view.window;
+    window.toolbar.selectedItemIdentifier = pageIdentifiers[index];
+    if (window != nil) window.title = pageTitles[index];
+    [self resizeWindowForTab:index animate:YES];
 }
 
 - (IBAction)onTabButton:(NSButton *)sender {
     [self showTab:sender.tag];
+}
+
+- (void)onToolbarItem:(NSToolbarItem *)sender {
+    NSUInteger index = [pageIdentifiers indexOfObject:sender.itemIdentifier];
+    if (index != NSNotFound && (NSInteger)index != currentTab) [self showTab:index];
+}
+
+- (void)installToolbarIfNeeded {
+    NSWindow *window = self.view.window;
+    if (window == nil || window.toolbar != nil) return;
+    NSToolbar *toolbar = [[NSToolbar alloc] initWithIdentifier:@"OpenKeySettings"];
+    toolbar.delegate = self;
+    toolbar.displayMode = NSToolbarDisplayModeIconAndLabel;
+    toolbar.allowsUserCustomization = NO;
+    if (@available(macOS 11.0, *)) {
+        window.toolbarStyle = NSWindowToolbarStylePreference;
+    }
+    window.toolbar = toolbar;
+    toolbar.selectedItemIdentifier = pageIdentifiers[currentTab];
+    window.title = pageTitles[currentTab];
+    [self resizeWindowForTab:currentTab animate:NO];
+}
+
+- (NSImage *)toolbarImageForIndex:(NSUInteger)index {
+    if (@available(macOS 11.0, *)) {
+        NSArray *symbols = @[@"gearshape", @"keyboard", @"text.badge.plus", @"desktopcomputer", @"info.circle"];
+        NSImage *image = [NSImage imageWithSystemSymbolName:symbols[index] accessibilityDescription:pageTitles[index]];
+        if (image != nil) return image;
+    }
+    NSArray *fallbacks = @[NSImageNamePreferencesGeneral, NSImageNameFontPanel, NSImageNameMultipleDocuments,
+                           NSImageNameAdvanced, NSImageNameInfo];
+    return [NSImage imageNamed:fallbacks[index]];
+}
+
+- (NSToolbarItem *)toolbar:(NSToolbar *)toolbar itemForItemIdentifier:(NSToolbarItemIdentifier)itemIdentifier willBeInsertedIntoToolbar:(BOOL)flag {
+    NSUInteger index = [pageIdentifiers indexOfObject:itemIdentifier];
+    if (index == NSNotFound) return nil;
+    NSToolbarItem *item = [[NSToolbarItem alloc] initWithItemIdentifier:itemIdentifier];
+    item.label = pageTitles[index];
+    item.paletteLabel = pageTitles[index];
+    item.image = [self toolbarImageForIndex:index];
+    item.target = self;
+    item.action = @selector(onToolbarItem:);
+    return item;
+}
+
+- (NSArray<NSToolbarItemIdentifier> *)toolbarDefaultItemIdentifiers:(NSToolbar *)toolbar {
+    return pageIdentifiers;
+}
+
+- (NSArray<NSToolbarItemIdentifier> *)toolbarAllowedItemIdentifiers:(NSToolbar *)toolbar {
+    return pageIdentifiers;
+}
+
+- (NSArray<NSToolbarItemIdentifier> *)toolbarSelectableItemIdentifiers:(NSToolbar *)toolbar {
+    return pageIdentifiers;
+}
+
+- (void)onLanguageSegment:(NSSegmentedControl *)sender {
+    NSInteger current = [[NSUserDefaults standardUserDefaults] integerForKey:@"InputMethod"] == 1 ? 0 : 1;
+    if (sender.selectedSegment != current) {
+        [appDelegate onInputMethodSelected];
+    }
 }
 
 - (IBAction)onInputTypeChanged:(NSPopUpButton *)sender {
@@ -398,11 +643,7 @@ extern int vPerformLayoutCompat;
     NSInteger value;
     
     NSInteger intInputMethod = [[NSUserDefaults standardUserDefaults] integerForKey:@"InputMethod"];
-    if (intInputMethod == 1) {
-        self.VietButton.state = NSControlStateValueOn;
-    } else if (intInputMethod == 0) {
-        self.EngButton.state = NSControlStateValueOn;
-    }
+    languageControl.selectedSegment = intInputMethod == 1 ? 0 : 1;
     
     NSInteger intInputType = [[NSUserDefaults standardUserDefaults] integerForKey:@"InputType"];
     [self.popupInputType selectItemAtIndex:intInputType];
@@ -541,12 +782,12 @@ extern int vPerformLayoutCompat;
 }
 
 - (IBAction)onCheckNewVersionButton:(id)sender {
-    self.CheckNewVersionButton.title = @"Đang kiểm tra...";
+    self.CheckNewVersionButton.title = @"Đang kiểm tra…";
     self.CheckNewVersionButton.enabled = false;
     
     [OpenKeyManager checkNewVersion:self.view.window callbackFunc:^{
         self.CheckNewVersionButton.enabled = true;
-        self.CheckNewVersionButton.title = @"Kiểm tra bản mới...";
+        self.CheckNewVersionButton.title = @"Kiểm tra bản mới…";
     }];
 }
 

@@ -38,6 +38,7 @@
 		238AF97122042EC600AEFA17 /* Icon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 238AF97022042EC600AEFA17 /* Icon.icns */; };
 		23963B5022040C720097189E /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 23963B4F22040C720097189E /* ServiceManagement.framework */; };
 		23CA6D1722F0439100804D6E /* MyTextField.m in Sources */ = {isa = PBXBuildFile; fileRef = 23CA6D1622F0439100804D6E /* MyTextField.m */; };
+		A1F0E0A02F00000000000001 /* OKFormUI.m in Sources */ = {isa = PBXBuildFile; fileRef = A1F0E0A02F00000000000003 /* OKFormUI.m */; };
 		23E2E49D2314FD3A006CCC3E /* Macro.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 23E2E4952314FD3A006CCC3E /* Macro.cpp */; };
 		23E2E49E2314FD3A006CCC3E /* SmartSwitchKey.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 23E2E4982314FD3A006CCC3E /* SmartSwitchKey.cpp */; };
 		23E2E49F2314FD3A006CCC3E /* Engine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 23E2E49A2314FD3A006CCC3E /* Engine.cpp */; };
@@ -123,6 +124,8 @@
 		23A984BE220ED07E000914A2 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		23CA6D1522F0439100804D6E /* MyTextField.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MyTextField.h; sourceTree = "<group>"; };
 		23CA6D1622F0439100804D6E /* MyTextField.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MyTextField.m; sourceTree = "<group>"; };
+		A1F0E0A02F00000000000002 /* OKFormUI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OKFormUI.h; sourceTree = "<group>"; };
+		A1F0E0A02F00000000000003 /* OKFormUI.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = OKFormUI.m; sourceTree = "<group>"; };
 		23E2E4942314FD3A006CCC3E /* Engine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Engine.h; sourceTree = "<group>"; };
 		23E2E4952314FD3A006CCC3E /* Macro.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Macro.cpp; sourceTree = "<group>"; };
 		23E2E4962314FD3A006CCC3E /* DataType.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DataType.h; sourceTree = "<group>"; };
@@ -217,6 +220,8 @@
 				2389467C21FDDB920030A13B /* OpenKeyManager.m */,
 				23CA6D1522F0439100804D6E /* MyTextField.h */,
 				23CA6D1622F0439100804D6E /* MyTextField.m */,
+				A1F0E0A02F00000000000002 /* OKFormUI.h */,
+				A1F0E0A02F00000000000003 /* OKFormUI.m */,
 				2345899822F720D7003E0923 /* MacroViewController.h */,
 				2345899922F720D7003E0923 /* MacroViewController.mm */,
 				23136D90231FBD49000764E6 /* ConvertToolViewController.h */,
@@ -412,6 +417,7 @@
 				23E2E4A02314FD3A006CCC3E /* Vietnamese.cpp in Sources */,
 				2374A1302216720E005B0375 /* AboutViewController.m in Sources */,
 				23CA6D1722F0439100804D6E /* MyTextField.m in Sources */,
+				A1F0E0A02F00000000000001 /* OKFormUI.m in Sources */,
 				232EDA6421F1B33F0085D362 /* main.m in Sources */,
 				2345899A22F720D7003E0923 /* MacroViewController.mm in Sources */,
 				2371AAEF22FA85B200CA1B57 /* OpenKey.mm in Sources */,

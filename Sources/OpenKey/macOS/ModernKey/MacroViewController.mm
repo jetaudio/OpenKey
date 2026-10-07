@@ -8,6 +8,7 @@
 
 #import "MacroViewController.h"
 #include "Engine.h"
+#import "OKFormUI.h"
 
 #define MACRO_ADD_TEXT @"Thêm"
 #define MACRO_EDIT_TEXT @"Sửa"
@@ -20,6 +21,7 @@
     vector<vector<Uint32>> keys;
     vector<string> macroText;
     vector<string> macroContent;
+    NSTextField *emptyLabel;
 }
 
 - (void)viewDidLoad {
@@ -34,11 +36,130 @@
     
     //load data
     getAllMacro(keys, macroText, macroContent);
+    
+    [self buildLayout];
+}
+
+- (void)viewWillAppear {
+    [super viewWillAppear];
+    NSWindow *window = self.view.window;
+    window.title = @"Bảng gõ tắt";
+    window.contentMinSize = NSMakeSize(520, 360);
+}
+
+- (void)prepareField:(NSTextField *)field placeholder:(NSString *)placeholder {
+    field.translatesAutoresizingMaskIntoConstraints = NO;
+    field.font = [NSFont systemFontOfSize:13];
+    field.placeholderString = placeholder;
+    field.bezeled = YES;
+    field.bezelStyle = NSTextFieldRoundedBezel;
+}
+
+- (void)buildLayout {
+    OKFormBuilder *form = [[OKFormBuilder alloc] initWithWidth:600];
+    
+    // Entry bar: shortcut, expansion, delete and add (Return).
+    [self prepareField:self.macroName placeholder:@"Từ gõ tắt"];
+    [self prepareField:self.macroContent placeholder:@"Nội dung đầy đủ"];
+    [self.macroName.widthAnchor constraintEqualToConstant:140].active = YES;
+    [self.macroContent setContentHuggingPriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
+    NSButton *add = self.buttonAdd;
+    [OKFormBuilder preparePushButton:add];
+    add.image = nil;
+    add.contentTintColor = nil;
+    add.keyEquivalent = @"\r";
+    add.keyEquivalentModifierMask = 0;
+    add.translatesAutoresizingMaskIntoConstraints = NO;
+    [add.widthAnchor constraintGreaterThanOrEqualToConstant:72].active = YES;
+    NSButton *remove = [OKFormBuilder pushButtonWithTitle:@"Xoá" target:self action:@selector(onDeleteMacro:)];
+    remove.keyEquivalent = [NSString stringWithFormat:@"%C", (unichar)NSBackspaceCharacter];
+    remove.keyEquivalentModifierMask = NSEventModifierFlagCommand;
+    remove.toolTip = @"Xoá từ gõ tắt đang chọn (⌘⌫)";
+    [remove.widthAnchor constraintGreaterThanOrEqualToConstant:72].active = YES;
+    NSStackView *entry = [NSStackView stackViewWithViews:@[self.macroName, self.macroContent, remove, add]];
+    entry.spacing = 8;
+    entry.translatesAutoresizingMaskIntoConstraints = NO;
+    
+    // Table inside a rounded, borderless-looking container.
+    NSScrollView *scrollView = self.tableView.enclosingScrollView;
+    scrollView.translatesAutoresizingMaskIntoConstraints = NO;
+    scrollView.borderType = NSNoBorder;
+    scrollView.autohidesScrollers = YES;
+    if (@available(macOS 11.0, *)) {
+        self.tableView.style = NSTableViewStyleFullWidth;
+    }
+    self.tableView.rowHeight = 26;
+    self.tableView.intercellSpacing = NSMakeSize(10, 0);
+    self.tableView.gridStyleMask = NSTableViewGridNone;
+    self.tableView.usesAlternatingRowBackgroundColors = YES;
+    self.tableView.columnAutoresizingStyle = NSTableViewLastColumnOnlyAutoresizingStyle;
+    NSArray<NSString *> *headers = @[@"Từ gõ tắt", @"Nội dung"];
+    [self.tableView.tableColumns enumerateObjectsUsingBlock:^(NSTableColumn *column, NSUInteger i, BOOL *stop) {
+        if (i < headers.count) column.title = headers[i];
+    }];
+    self.tableView.tableColumns.firstObject.width = 150;
+    OKRoundedContainerView *tableBox = [[OKRoundedContainerView alloc] init];
+    tableBox.translatesAutoresizingMaskIntoConstraints = NO;
+    [tableBox addSubview:scrollView];
+    
+    emptyLabel = [form labelWithString:@"Chưa có từ gõ tắt nào.\nNhập từ gõ tắt và nội dung ở trên rồi bấm Thêm."
+                                  font:[NSFont systemFontOfSize:13] color:[NSColor secondaryLabelColor]];
+    emptyLabel.alignment = NSTextAlignmentCenter;
+    [emptyLabel setContentHuggingPriority:NSLayoutPriorityDefaultHigh forOrientation:NSLayoutConstraintOrientationHorizontal];
+    [tableBox addSubview:emptyLabel];
+    
+    // Footer: import/export on the left, auto-caps on the right.
+    NSStackView *files = [NSStackView stackViewWithViews:@[
+        [OKFormBuilder pushButtonWithTitle:@"Nạp từ file…" target:self action:@selector(onLoadFromFile:)],
+        [OKFormBuilder pushButtonWithTitle:@"Xuất ra file…" target:self action:@selector(onExportToFile:)],
+    ]];
+    files.spacing = 8;
+    files.translatesAutoresizingMaskIntoConstraints = NO;
+    NSButton *autoCaps = self.AutoCapsMacro;
+    autoCaps.translatesAutoresizingMaskIntoConstraints = NO;
+    autoCaps.font = [NSFont systemFontOfSize:13];
+    
+    for (NSView *view in [self.view.subviews copy]) {
+        [view removeFromSuperview];
+    }
+    for (NSView *view in @[entry, tableBox, files, autoCaps]) {
+        [self.view addSubview:view];
+    }
+    NSView *root = self.view;
+    [NSLayoutConstraint activateConstraints:@[
+        [entry.topAnchor constraintEqualToAnchor:root.topAnchor constant:20],
+        [entry.leadingAnchor constraintEqualToAnchor:root.leadingAnchor constant:20],
+        [entry.trailingAnchor constraintEqualToAnchor:root.trailingAnchor constant:-20],
+        [tableBox.topAnchor constraintEqualToAnchor:entry.bottomAnchor constant:14],
+        [tableBox.leadingAnchor constraintEqualToAnchor:root.leadingAnchor constant:20],
+        [tableBox.trailingAnchor constraintEqualToAnchor:root.trailingAnchor constant:-20],
+        [scrollView.leadingAnchor constraintEqualToAnchor:tableBox.leadingAnchor],
+        [scrollView.trailingAnchor constraintEqualToAnchor:tableBox.trailingAnchor],
+        [scrollView.topAnchor constraintEqualToAnchor:tableBox.topAnchor],
+        [scrollView.bottomAnchor constraintEqualToAnchor:tableBox.bottomAnchor],
+        [emptyLabel.centerXAnchor constraintEqualToAnchor:tableBox.centerXAnchor],
+        [emptyLabel.centerYAnchor constraintEqualToAnchor:tableBox.centerYAnchor constant:12],
+        [emptyLabel.widthAnchor constraintLessThanOrEqualToAnchor:tableBox.widthAnchor constant:-40],
+        [files.topAnchor constraintEqualToAnchor:tableBox.bottomAnchor constant:14],
+        [files.leadingAnchor constraintEqualToAnchor:root.leadingAnchor constant:20],
+        [files.bottomAnchor constraintEqualToAnchor:root.bottomAnchor constant:-20],
+        [autoCaps.centerYAnchor constraintEqualToAnchor:files.centerYAnchor],
+        [autoCaps.trailingAnchor constraintEqualToAnchor:root.trailingAnchor constant:-20],
+        [autoCaps.leadingAnchor constraintGreaterThanOrEqualToAnchor:files.trailingAnchor constant:16],
+    ]];
+    [self.view layoutSubtreeIfNeeded];
+    [self.tableView sizeLastColumnToFit];
+    [self updateEmptyState];
+}
+
+- (void)updateEmptyState {
+    emptyLabel.hidden = keys.size() > 0;
 }
 
 -(void)saveAndReload {
     getAllMacro(keys, macroText, macroContent);
     [self.tableView reloadData];
+    [self updateEmptyState];
     
     vector<Byte> macroData;
     getMacroSaveData(macroData);
