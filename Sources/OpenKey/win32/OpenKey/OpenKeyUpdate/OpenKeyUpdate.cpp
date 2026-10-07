@@ -14,6 +14,7 @@ redistribute your new version, it MUST be open source.
 
 #include "framework.h"
 #include "OpenKeyUpdate.h"
+#include "RestartOpenKey.h"
 #include <Urlmon.h>
 #include <fstream>
 #include <sstream>
@@ -149,7 +150,10 @@ DWORD WINAPI UpdateThreadFunction(LPVOID lpParam) {
 		}
 		if (result == 0) {
 			DeleteFile(path);
-			MessageBox(hDlg, _T("Bạn đã cập nhật OpenKey bản mới nhất thành công!"), _T("OpenKey Update"), MB_OK);
+			if (!RestartOpenKey(currentDir, mainExe)) {
+				MessageBox(hDlg, _T("Đã cập nhật OpenKey thành công nhưng không thể tự khởi động lại. Hãy mở OpenKey từ thư mục cài đặt."), _T("OpenKey Update"), MB_OK | MB_ICONWARNING);
+				ExitProcess(1);
+			}
 		} else {
 			MessageBox(hDlg, _T("Không cập nhật được OpenKey. Hãy tải và giải nén đầy đủ gói Windows từ trang release."), _T("OpenKey Update"), MB_OK | MB_ICONERROR);
 		}

@@ -27,6 +27,10 @@ if errorlevel 1 exit /b 1
 cl /nologo /EHsc /std:c++14 /utf-8 /DUNICODE /D_UNICODE "$repo\Sources\OpenKey\win32\OpenKey\OpenKey\WindowsRime.cpp" "$repo\Sources\OpenKey\win32\OpenKey\OpenKey\CandidatePanel.cpp" "$repo\tests\windows_chinese_input_tests.cpp" /Fe:chinese-input-tests.exe /link shell32.lib user32.lib gdi32.lib ole32.lib uuid.lib advapi32.lib
 if errorlevel 1 exit /b 1
 chinese-input-tests.exe "$(Split-Path -Parent $Bundle)" "$testOutput\integration-user"
+if errorlevel 1 exit /b 1
+cl /nologo /EHsc /std:c++14 /utf-8 /DUNICODE /D_UNICODE "$repo\tests\windows_update_restart_tests.cpp" /Fe:restart-regression.exe
+if errorlevel 1 exit /b 1
+restart-regression.exe
 exit /b %errorlevel%
 "@ | Set-Content -LiteralPath $batch -Encoding ASCII
 & cmd /c $batch
